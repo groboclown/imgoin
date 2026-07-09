@@ -1,0 +1,28 @@
+name: Build and Validate
+on:
+    push:
+        branches: [main, dev]
+    pull_request:
+
+jobs:
+    ubuntu:
+        name: Ubuntu
+        runs-on: ubuntu-latest
+        outputs:
+            version: ${{ steps.properties.outputs.version }}
+            changelog: ${{ steps.properties.outputs.changelog }}
+        steps:
+            - name: Fetch Sources
+              uses: actions/checkout@v3
+            
+            - name: Install Dependencies
+              run: |
+                apt-get update \
+                && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+                    libbtrfs-dev \
+                    golang \
+                    make
+
+            - name: Build & Test
+              run: |
+                make all

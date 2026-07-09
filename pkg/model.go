@@ -17,9 +17,11 @@ import (
 // ImageConnection points to a defined image somewhere, using a supported podman image transport.
 type ImageConnection struct {
 	ImageUri   string
+	Tags       []string
 	Connection *RepositoryConnection
 }
 
+// SourceReference allows extracting information to put into the target.
 type SourceReference interface {
 	GetManifests(ctx context.Context) ([]manifest.ListUpdate, error)
 	GetBlobsToCopy(ctx context.Context) ([]types.BlobInfo, error)
@@ -27,6 +29,7 @@ type SourceReference interface {
 	Close() error
 }
 
+// TargetImage allows for storing manifests and data blobs from the multiple source images.
 type TargetImage interface {
 	AddManifest(manifest.ListUpdate) error
 	CopyBlob(types.BlobInfo, io.ReadCloser) error
@@ -62,11 +65,13 @@ func AsSourceManifestReference(imageName string) *SourceManifestReference {
 
 // BearingImage references an image that contains either the manifest index or the data blob.
 type BearingImage struct {
-	sys *types.SystemContext
-	ref types.ImageReference
+	sys  *types.SystemContext
+	ref  types.ImageReference
+	tags []string
 }
 
 // RepositoryConnection contains information on how to contact the registry.
+// May look instead at just directly using types.SystemContext.
 type RepositoryConnection struct {
 	AuthFilePath     *string // Path to a 'containers/auth.json' file.
 	Creds            *string // 'username[:password]' for accessing the registry
@@ -104,6 +109,7 @@ func AsBearingImage(conn ImageConnection) (*BearingImage, error) {
 	}
 
 	return &BearingImage{
+		tags: conn.Tags,
 		sys: &types.SystemContext{
 			// If not "", prefixed to any absolute paths used by default by the library (e.g. in /etc/).
 			// Not used for any of the more specific path overrides available in this struct.

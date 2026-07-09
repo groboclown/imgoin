@@ -1,0 +1,40 @@
+# A meta-container to allow testing out the execution of the run script to
+# generate the images.
+# You'll need to run this from the project root to allow it to copy up the
+# imgoin command.
+
+# This doesn't really work.  'update-binfmts' doesn't work right inside
+# a container.  And embedded podman or docker within podman or docker
+# has issues without some elevated privileges.
+
+# First, build the imgoin command.
+FROM public.ecr.aws/docker/library/golang:1.26 AS build
+
+RUN set -x \
+    && apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        libbtrfs-dev
+
+COPY main.go go.mod go.sum version.txt /code/
+COPY pkg/ /code/pkg/
+COPY cmd/ /code/cmd/
+
+RUN set -x \
+    && cd /code \
+    && go build \
+    && /code/imgoin -V
+
+
+# Perform the funtimes actions.
+FROM public.ecr.aws/docker/library/ubuntu:latest
+
+RUN set -x \
+    && apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        qemu-user-binfmt binfmt-support podman \
+    && update-binfmts --enable qemu-aarch64
+
+COPY --from=build /code/imgoin /usr/local/bin/imgoin
+
+RUN set -x \
+    && imgoin -V

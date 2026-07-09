@@ -1,1 +1,1 @@
-localhost/local-path/test-data:local-369140
+localhost/local-path/test-data:local-883775-arm64

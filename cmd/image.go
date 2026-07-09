@@ -36,6 +36,9 @@ type imageOptions struct {
 	// For getting the information
 	conn            imgoin.RepositoryConnection
 	includeContents bool
+
+	// Targets can also include different tags.
+	tags []string
 }
 
 // parseImageOptions reads in the options for the image, starting with the given index.
@@ -189,6 +192,12 @@ func (o *imageOptions) handleArg(key, value string) error {
 	case "os-variant":
 		o.variant = value
 
+	case "tag":
+		if o.tags == nil {
+			o.tags = make([]string, 0)
+		}
+		o.tags = append(o.tags, value)
+
 	default:
 		return fmt.Errorf("invalid image setting (%s)", key)
 	}
@@ -196,6 +205,10 @@ func (o *imageOptions) handleArg(key, value string) error {
 }
 
 func (o *imageOptions) asSource(ctx context.Context) (imgoin.SourceReference, error) {
+	if len(o.tags) > 0 {
+		return nil, fmt.Errorf("source images cannot take the 'tag' value")
+	}
+
 	res := imgoin.AsSourceManifestReference(o.image)
 	if res != nil {
 		if o.size == 0 {
@@ -228,6 +241,7 @@ func (o *imageOptions) asTarget(ctx context.Context) (imgoin.TargetImage, error)
 	}
 	out, err := imgoin.AsBearingImage(imgoin.ImageConnection{
 		ImageUri:   o.image,
+		Tags:       o.tags,
 		Connection: &o.conn,
 	})
 	if err != nil {

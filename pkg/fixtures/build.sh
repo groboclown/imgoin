@@ -31,11 +31,20 @@ cd $( dirname "$0" ) || exit 1
 tag=local-$$
 tmpdir=$(mktemp -d)
 
+# If you want to construct the joined version of the platforms, you need to use Podman.
+#"${DOCKER_CMD}" manifest rm local-path/test-data:${tag}-joined || true
+#"${DOCKER_CMD}" manifest create local-path/test-data:${tag}-joined || exit 2
+
 for plat in arm64 amd64 ; do
   echo "Building ${plat} version"
-  "${DOCKER_CMD}" build --platform linux/${plat} -t local-path/test-data:${tag} . || exit 2
-  "${DOCKER_CMD}" save -o "${tmpdir}/t.tar" local-path/test-data:${tag} || exit 2
-  "${DOCKER_CMD}" rmi local-path/test-data:${tag} || exit 2
+  "${DOCKER_CMD}" build --platform linux/${plat} -t local-path/test-data:${tag}-${plat} . || exit 2
+  "${DOCKER_CMD}" save -o "${tmpdir}/t.tar" local-path/test-data:${tag}-${plat} || exit 2
+
+  # Podman specific manifest.
+  #"${DOCKER_CMD}" manifest add --os linux --arch ${plat} \
+  #  local-path/test-data:${tag}-joined \
+  #  local-path/test-data:${tag}-${plat} \
+  #  || exit 2
 
   # The saved output is in a docker-archive format.  Make it explicitly clear.
   test -f docker-linux-${plat}.tar && rm docker-linux-${plat}.tar || true
@@ -64,8 +73,11 @@ chmod +w oci-indexed-index.json || exit 3
 cp "${tmpdir}/blobs/sha256/${digest}" oci-indexed-manifest.json || exit 3
 chmod +w oci-indexed-manifest.json || exit 3
 
-# Not performed because the file is quite large for source control.
-test -f oci-joined.tar && rm oci-joined.tar || true
-"${SKOPEO_CMD}" copy --all docker://public.ecr.aws/docker/library/alpine:3.22.5 oci-archive:oci-joined.tar || exit 3
+#test -f oci-joined.tar && rm oci-joined.tar || true
+#"${DOCKER_CMD}" manifest push --all local-path/test-data:${tag}-joined oci-archive:oci-joined.tar || exit 3
+
+# "${DOCKER_CMD}" rmi local-path/test-data:${tag}-arm64 || exit 2
+# "${DOCKER_CMD}" rmi local-path/test-data:${tag}-amd64 || exit 2
+# "${DOCKER_CMD}" rmi local-path/test-data:${tag}-joined || exit 2
 
 rm -rf "${tmpdir}" || true

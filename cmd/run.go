@@ -32,8 +32,9 @@ func Exec(name, version string, args []string) int {
 			ret = -1
 			index += 1
 		case "-V":
+			fallthrough
 		case "--version":
-			printVersion(name, version)
+			printVersion(version)
 			return ret
 		case "--source":
 			source, idx, err := parseImageOptions(args, index+1)
@@ -137,20 +138,109 @@ func Exec(name, version string, args []string) int {
 }
 
 func printHelp(name string) {
-	fmt.Printf("Usage: %s [-h] --source [KEY=VALUE [KEY=VALUE ...]] --target [KEY=VALUE [KEY=VALUE ...]]\n", name)
-	fmt.Println("Where:")
-	fmt.Println("   -h, --help       This screen")
-	fmt.Println("   --source         Settings for the source image.  You may specify multiple source images.")
-	fmt.Println("   --target         Settings for the target image.")
-	fmt.Println("   KEY=VALUE        An image setting.  Alternatively, you can provide '@FILENAME' to load the image settings from the given file.")
-	fmt.Println("Supported image settings:")
-	fmt.Println("   image=IMAGE-LOCATION     Location of the image, in the format 'transport:name'.")
-	fmt.Println("Supported image transports:")
+	fmt.Printf(`Usage: %s [-h] --source SETTINGS [--source SETTINGS ...] --target SETTINGS
+Where:
+   -h, --help       This screen.
+   --source         Settings for the source image.  You may specify
+                    multiple source images.
+   --target			Settings for the target image.
+
+Each '--source' and '--target' argument tells the command to start reading
+information about that corresponding source or target.
+
+The SETTINGS takes the form of 'KEY=VALUE'; see the below table for the list
+of supported keys and their recognized values.  Some keys allow for setting
+multiple values.
+
+Alternatively, you can pass '@FILENAME' to have the command read the settings
+from the file named FILENAME.  This file contains 'KEY=VALUE' items, separated
+by spaces or newlines.  You can put the value in quotes if it contains a
+space, or use \\ to escape a character (like a quote).
+
+General image settings:
+  image=IMAGE-LOCATION
+      Location of the image, in the format 'transport:name' (see the list of
+	  supported transports below).
+	  Required for all images.
+
+  auth-file=FILENAME
+      Path to a '*/containers/auth.json' file.
+
+  credentials=USERNAME[:PASSWORD]
+      Credentials for accessing the registry.
+
+  username=USERNAME
+      Username for accessing the registry.
+
+  password=PASSWORD
+      Password for accessing the registry.
+
+  registry-token=TOKEN
+      Bearer token for accessing the registry.
+
+  certificate-dir=DIRNAME
+      Directory containing *.{crt,cert,key} files for contacting the registry.
+
+  tls-verify=yes|no
+      Set to 'yes' to require HTTPS + certificate verification.
+
+  anonymous=yes|no
+      Set to 'yes' to force anonymous registry access.
+
+  blobs-dir=DIRNAME
+      OCI shared blobs directory.
+
+  daemon-host=HOSTNAME[:PORT]
+      docker-daemon host for the connection.
+
+Source image settings:
+
+  include-contents=yes|no
+      Set to 'yes' to have the target image save all the contents of this
+	  source image.  Without it, the target image will store just a reference.
+	  Most multi-architecture images store just a reference.
+
+Explicit source image settings:
+
+  You can pass the image setting in the form 'image=sha256:ABC...', which
+  allows you to explicitly declare the image reference information.
+
+  manifest-size=SIZE_IN_BYTES
+      Number of bytes of the referenced image's manifest.
+	
+  architecture=ARCH
+      Name of the image's target architecture.
+  
+  os=OS
+      Name of the image's target operating system.
+
+  os-version=VERSION
+      Version of the image's target operating system.
+
+  os-feature=FEATURE
+      A feature required for the image's target operating system.
+      You may specify this more than once.
+
+  os-variant=VARIANT
+      The image's target operating system variant.
+
+  annotation=KEY:VALUE
+      Add a annotation to the image reference.
+	  You may provide multiple of these.
+
+Target image settings:
+
+	tag=TAG
+	  Give the constructed image a tag.  Only some output transports support this.
+	  You may provide multiple of these.
+
+Supported image transports:
+`, name)
 	for _, name := range transports.ListNames() {
 		fmt.Printf("     %s\n", name)
 	}
 }
 
-func printVersion(name, version string) {
-	fmt.Printf("%s v%s\n", name, version)
+func printVersion(version string) {
+	fmt.Printf("imgoin v%s\n", version)
 }

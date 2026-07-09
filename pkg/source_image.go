@@ -15,46 +15,6 @@ import (
 	"go.podman.io/image/v5/types"
 )
 
-var _ SourceReference = (*SourceManifestReference)(nil)
-
-func (r *SourceManifestReference) GetManifests(ctx context.Context) ([]manifest.ListUpdate, error) {
-	item := manifest.ListUpdate{
-		Digest:    r.Digest,
-		Size:      int64(r.Size),
-		MediaType: imgspecv1.MediaTypeImageManifest,
-		ReadOnly: struct {
-			Platform                  *imgspecv1.Platform
-			Annotations               map[string]string
-			CompressionAlgorithmNames []string
-			ArtifactType              string
-		}{
-			Platform: &imgspecv1.Platform{
-				Architecture: r.Platform.Architecture,
-				OS:           r.Platform.OS,
-				OSVersion:    r.Platform.OSVersion,
-				OSFeatures:   r.Platform.OSFeatures,
-				Variant:      r.Platform.Variant,
-			},
-			Annotations:               r.Annotations,
-			CompressionAlgorithmNames: nil,
-			ArtifactType:              "",
-		},
-	}
-	return []manifest.ListUpdate{item}, nil
-}
-
-func (r *SourceManifestReference) GetBlobsToCopy(ctx context.Context) ([]types.BlobInfo, error) {
-	return nil, nil
-}
-
-func (r *SourceManifestReference) GetBlob(ctx context.Context, blob types.BlobInfo) (io.ReadCloser, error) {
-	return nil, fmt.Errorf("no such blob")
-}
-
-func (r *SourceManifestReference) Close() error {
-	return nil
-}
-
 type SrcImage struct {
 	img          types.ImageSource
 	copyContents bool
@@ -75,6 +35,8 @@ func (r *SrcImage) GetManifests(ctx context.Context) ([]manifest.ListUpdate, err
 	if err != nil {
 		return nil, err
 	}
+
+	// Multi-image manifests support just what this needs.
 	mt := sourceManifestMIMEType(raw, mime)
 	if manifest.MIMETypeIsMultiImage(mt) {
 		list, err := manifest.ListFromBlob(raw, mt)
@@ -98,6 +60,9 @@ func (r *SrcImage) GetManifests(ctx context.Context) ([]manifest.ListUpdate, err
 		}
 		return ret, nil
 	}
+
+	// Single-image manifests have a history of versions that this needs
+	// awareness for completeness.
 	man, err := manifest.FromBlob(raw, mt)
 	if err != nil {
 		return nil, err
@@ -111,12 +76,16 @@ func (r *SrcImage) GetManifests(ctx context.Context) ([]manifest.ListUpdate, err
 		Size:      int64(len(raw)),
 		MediaType: mt,
 	}
+
+	// The OCI1 manifest can have their own annotations and artifact type items.
 	if ociMan, err := manifest.OCI1FromManifest(raw); err == nil {
 		if len(ociMan.Annotations) > 0 {
 			item.ReadOnly.Annotations = maps.Clone(ociMan.Annotations)
 		}
 		item.ReadOnly.ArtifactType = ociMan.ArtifactType
 	}
+
+	// The config blob tends to have the platform and other information this needs to carry-over.
 	config := man.ConfigInfo()
 	if item.ReadOnly.Annotations == nil && len(config.Annotations) > 0 {
 		item.ReadOnly.Annotations = maps.Clone(config.Annotations)
@@ -138,8 +107,11 @@ func (r *SrcImage) GetManifests(ctx context.Context) ([]manifest.ListUpdate, err
 	return []manifest.ListUpdate{item}, nil
 }
 
+// GetBlob gets the binary blob from the image archive.
+// The blob must have come from a call to GetBlobsToCopy.
 func (r *SrcImage) GetBlob(ctx context.Context, blob types.BlobInfo) (io.ReadCloser, error) {
 	if isManifestMediaType(blob.MediaType) {
+		// Manifest blobs can be hidden in many places.
 		if rc, _, err := r.img.GetBlob(ctx, blob, nil); err == nil {
 			data, readErr := io.ReadAll(rc)
 			rc.Close()
@@ -150,6 +122,7 @@ func (r *SrcImage) GetBlob(ctx context.Context, blob types.BlobInfo) (io.ReadClo
 			}
 		}
 
+		// Try a specific manifest within the image.
 		raw, _, err := r.manifestBlob(ctx, &blob.Digest)
 		if err == nil {
 			if digestValue, digestErr := manifest.Digest(raw); digestErr == nil && digestValue == blob.Digest {
@@ -157,6 +130,7 @@ func (r *SrcImage) GetBlob(ctx context.Context, blob types.BlobInfo) (io.ReadClo
 			}
 		}
 
+		// Try the index manifest.
 		raw, _, err = r.manifestBlob(ctx, nil)
 		if err != nil {
 			return nil, err
@@ -182,8 +156,10 @@ func (r *SrcImage) GetBlobsToCopy(ctx context.Context) ([]types.BlobInfo, error)
 	if err != nil {
 		return nil, err
 	}
+
 	mt := sourceManifestMIMEType(raw, mime)
 	if manifest.MIMETypeIsMultiImage(mt) {
+		// Multiple images
 		list, err := manifest.ListFromBlob(raw, mt)
 		if err != nil {
 			return nil, err
@@ -267,6 +243,7 @@ func (r *SrcImage) Close() error {
 	return r.img.Close()
 }
 
+// Turn the configuration blob into basic image data used for populating the target.
 func parseConfig(ctx context.Context, img types.ImageSource, config types.BlobInfo) (*SimpleConfig, error) {
 	// docker media type config info blob contains the json formatted file.
 	configReader, _, err := img.GetBlob(ctx, config, nil)
