@@ -89,7 +89,7 @@ func Exec(name, version string, args []string) int {
 	for i, src := range sources {
 		s, err := src.asSource(ctx)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %s.\n", err)
+			fmt.Fprintf(os.Stderr, "Error with %s: %s.\n", src.image, err)
 			return 3
 		}
 		defer s.Close()
@@ -97,7 +97,7 @@ func Exec(name, version string, args []string) int {
 	}
 	tgt, err := target.asTarget(ctx)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %s.\n", err)
+		fmt.Fprintf(os.Stderr, "Error with %s: %s.\n", target.image, err)
 		return 3
 	}
 	defer tgt.Close()
@@ -105,7 +105,7 @@ func Exec(name, version string, args []string) int {
 	// Perform the operation.
 	for i, src := range source_imgs {
 		src_name := sources[i].image
-		fmt.Fprintf(os.Stderr, "Copying %s...\n", src_name)
+		fmt.Fprintf(os.Stderr, "Copying %s ...\n", src_name)
 		mans, err := src.GetManifests(ctx)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error with %s: %s.\n", src_name, err)
@@ -132,6 +132,7 @@ func Exec(name, version string, args []string) int {
 			}
 		}
 	}
+	fmt.Fprintf(os.Stderr, "Closing out %s ...\n", target.image)
 	return 0
 }
 

@@ -10,30 +10,28 @@ SUPPORTED_PLATFORMS := linux-arm64 linux-amd64 darwin-arm64 windows-amd64
 
 OUTDIR := build
 BINNAME := imgoin
-ifeq ($(findstring Win,$(OS)),Win)
-	BINEXT := .exe
-else
-	BINEXT :=
-endif
+BINEXT := $(subst Win,.exe,$(findstring Win,$(OS)))
 
 SOURCE_FILES = $(wildcard *.go pkg/*.go pkg/fixtures/*.go)
 
 ## dev                Run the standard development tasks.
 .PHONY: dev
-dev:
+dev: format
 
 ## clean              Remove created files.
 .PHONY: clean
 clean:
+	-rm -f $(OUTDIR)/$(BINNAME)$(BINEXT)
 
 ## all                Run the full release tasks.
 .PHONY: all
 all: clean
 
-dev: $(OUTDIR)/$(BINNAME)$(BINEXT)
-$(OUTDIR)/$(BINNAME)$(BINEXT): $(OUTDIR) $(SOURCE_FILES)
-	@echo "DEBUG SOURCES: $(SOURCE_FILES)"
-	@echo "DEBUG OS: $(OS)"
+## build              Build the binary for your current platform.
+.PHONY: build
+dev: build
+build: $(OUTDIR)/$(BINNAME)$(BINEXT)
+$(OUTDIR)/$(BINNAME)$(BINEXT): $(OUTDIR)/ $(SOURCE_FILES)
 	$(GO) build -o $@
 
 ## test               Run unit tests.
@@ -69,9 +67,8 @@ all: go-dependencies
 
 ## format             Reformat the code using Go rules.
 .PHONY: format
-dev: format
 format: $(SOURCE_FILES)
-	$(GO) mod fmt ./...
+	$(GO) fmt ./...
 
 
 .PHONY: go-dep-vulncheck
@@ -86,8 +83,8 @@ go-dep-cyclonedx:
 
 
 
-$(OUTDIR):
-	mkdir -p $(OUTDIR)
+$(OUTDIR)/:
+	mkdir -p $@
 
 
 ## Parameterize the per-platform execution.
@@ -99,7 +96,7 @@ define OSBuild =
 $(info Supporting $(call getOs,$(1))-$(call getArch,$(1)))
 
 all-binaries: $(OUTDIR)/$(BINNAME)-$(1)$(call getExt,$(1))
-$(OUTDIR)/$(BINNAME)-$(1)$(call getExt,$(1)): $(OUTDIR) $(SOURCE_FILES)
+$(OUTDIR)/$(BINNAME)-$(1)$(call getExt,$(1)): $(OUTDIR)/ $(SOURCE_FILES)
 	GOOS=$(call getOs,$(1)) GOARCH=$(call getArch,$(1)) $(GO) build -o $$@
 
 all-sboms: $(OUTDIR)/$(BINNAME)-$(1).sbom.json
