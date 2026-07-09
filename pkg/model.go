@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 
 	digest "github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -155,7 +156,7 @@ func AsBearingImage(conn ImageConnection) (*BearingImage, error) {
 			// Additional tags when creating or copying a docker-archive.
 			DockerArchiveAdditionalTags: nil,
 			// If not "", overrides the temporary directory to use for storing big files
-			BigFilesTemporaryDir: "",
+			BigFilesTemporaryDir: os.Getenv("TMPDIR"),
 			// If not nil, may contain TLS _algorithm_ options (e.g. TLS version, cipher suites, “curves”, etc.)
 			// The effect of setting any other options (cryptographic keys, InsecureSkipTLSVerify, callbacks, etc.) is UNDEFINED,
 			// may be inconsistent in various use cases, and may change over time.
