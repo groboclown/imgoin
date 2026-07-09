@@ -1,0 +1,6 @@
+.gitignore
+*.go
+*.tar
+*.json
+*.sh
+*.txt
