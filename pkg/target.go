@@ -27,6 +27,7 @@ func (b *BearingImage) AsTargetImage(ctx context.Context) (*StdTgtImage, error) 
 		ctx = context.Background()
 	}
 	return &StdTgtImage{
+		name:          b.name,
 		ctx:           ctx,
 		img:           img,
 		tags:          slices.Clone(b.tags),
@@ -35,8 +36,9 @@ func (b *BearingImage) AsTargetImage(ctx context.Context) (*StdTgtImage, error) 
 	}, nil
 }
 
-func NewStdTgtImage(ctx context.Context, img types.ImageDestination, supportsList bool) *StdTgtImage {
+func NewStdTgtImage(ctx context.Context, name string, img types.ImageDestination, supportsList bool) *StdTgtImage {
 	return &StdTgtImage{
+		name:          name,
 		ctx:           ctx,
 		img:           img,
 		supportsList:  supportsList,
@@ -46,6 +48,7 @@ func NewStdTgtImage(ctx context.Context, img types.ImageDestination, supportsLis
 }
 
 type StdTgtImage struct {
+	name         string
 	ctx          context.Context
 	img          types.ImageDestination
 	tags         []string
@@ -57,6 +60,10 @@ type StdTgtImage struct {
 }
 
 var _ TargetImage = (*StdTgtImage)(nil)
+
+func (s *StdTgtImage) GetName() string {
+	return s.name
+}
 
 func (s *StdTgtImage) Close() (retErr error) {
 	// Closing the image means committing it to disk.

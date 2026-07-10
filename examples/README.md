@@ -5,7 +5,8 @@ Here you'll find examples of using the `imgoin` tool.
 * [multi-arch](multi-arch/README.md) contains a full example of a container that runs a native program.  The example script builds the container locally for each supported architecture then joins them into a single image.
 * [remote-push](remote-push/README.md) shows how to use a container image registry host to store an image in the host using the equivalent of other commands.
 
-## Local Configuration
+
+## Multi-Architecture Local Configuration
 
 Many of these examples require running them on a computer that has a configuration that allows for creating images with multiple architectures.  Not all systems support this, and, for those that do, they require some unusual configuration.
 

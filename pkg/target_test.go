@@ -54,7 +54,7 @@ func TestStdTgtImageCopiesListAndBlobs(t *testing.T) {
 		"localhost/example/image:beta",
 	}
 	dest := NewMockImageDestination([]string{imgspecv1.MediaTypeImageIndex})
-	tgt := imgoin.NewStdTgtImage(t.Context(), dest, imgoin.DestinationMimesSupportsList(dest.SupportedManifestMIMETypes()))
+	tgt := imgoin.NewStdTgtImage(t.Context(), "out", dest, imgoin.DestinationMimesSupportsList(dest.SupportedManifestMIMETypes()))
 	tgt.SetTags(tags)
 	for _, manifestUpdate := range manifests {
 		if err := tgt.AddManifest(manifestUpdate); err != nil {
@@ -128,7 +128,7 @@ func TestStdTgtImageBuffersSingleManifest(t *testing.T) {
 
 	tags := []string{"localhost/example/image:single"}
 	dest := NewMockImageDestination([]string{manifest.DockerV2Schema2MediaType})
-	tgt := imgoin.NewStdTgtImage(t.Context(), dest, imgoin.DestinationMimesSupportsList(dest.SupportedManifestMIMETypes()))
+	tgt := imgoin.NewStdTgtImage(t.Context(), "out", dest, imgoin.DestinationMimesSupportsList(dest.SupportedManifestMIMETypes()))
 	tgt.SetTags(tags)
 	for _, manifestUpdate := range manifests {
 		if err := tgt.AddManifest(manifestUpdate); err != nil {

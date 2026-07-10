@@ -16,6 +16,7 @@ import (
 )
 
 type SrcImage struct {
+	name         string
 	img          types.ImageSource
 	copyContents bool
 }
@@ -25,10 +26,14 @@ func (b *BearingImage) AsSourceImage(ctx context.Context, copyContents bool) (*S
 	if err != nil {
 		return nil, err
 	}
-	return &SrcImage{img, copyContents}, nil
+	return &SrcImage{img: img, copyContents: copyContents, name: b.name}, nil
 }
 
 var _ SourceReference = (*SrcImage)(nil)
+
+func (r *SrcImage) GetName() string {
+	return r.name
+}
 
 func (r *SrcImage) GetManifests(ctx context.Context) ([]manifest.ListUpdate, error) {
 	raw, mime, err := r.img.GetManifest(ctx, nil)

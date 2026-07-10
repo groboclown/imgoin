@@ -22,6 +22,7 @@ type ImageConnection struct {
 
 // SourceReference allows extracting information to put into the target.
 type SourceReference interface {
+	GetName() string
 	GetManifests(ctx context.Context) ([]manifest.ListUpdate, error)
 	GetBlobsToCopy(ctx context.Context) ([]types.BlobInfo, error)
 	GetBlob(ctx context.Context, digest types.BlobInfo) (io.ReadCloser, error)
@@ -30,6 +31,7 @@ type SourceReference interface {
 
 // TargetImage allows for storing manifests and data blobs from the multiple source images.
 type TargetImage interface {
+	GetName() string
 	AddManifest(manifest.ListUpdate) error
 	CopyBlob(types.BlobInfo, io.ReadCloser) error
 	Close() error
@@ -40,6 +42,7 @@ type TargetImage interface {
 // The alternative references the image using the podman images API.
 // This can only reference a source manifest, as the target must generate a real thing.
 type SourceManifestReference struct {
+	name        string
 	Digest      digest.Digest
 	Size        uint64
 	Annotations map[string]string
@@ -55,6 +58,7 @@ func AsSourceManifestReference(imageName string) *SourceManifestReference {
 		return nil
 	}
 	return &SourceManifestReference{
+		name:   imageName,
 		Digest: digest,
 		Platform: &imgspecv1.Platform{
 			OSFeatures: make([]string, 0),
@@ -64,6 +68,7 @@ func AsSourceManifestReference(imageName string) *SourceManifestReference {
 
 // BearingImage references an image that contains either the manifest index or the data blob.
 type BearingImage struct {
+	name string
 	sys  *types.SystemContext
 	ref  types.ImageReference
 	tags []string
@@ -79,32 +84,9 @@ func AsBearingImage(conn ImageConnection) (*BearingImage, error) {
 		return nil, err
 	}
 	return &BearingImage{
+		name: conn.ImageUri,
 		tags: conn.Tags,
 		sys:  conn.System,
 		ref:  ref,
 	}, nil
-}
-
-func ptrAsStr(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
-}
-
-func ptrAsBool(b *bool, def bool) bool {
-	if b == nil {
-		return def
-	}
-	return *b
-}
-
-func ptrAsOptionalBool(b *bool) types.OptionalBool {
-	if b == nil {
-		return types.OptionalBoolUndefined
-	}
-	if *b {
-		return types.OptionalBoolTrue
-	}
-	return types.OptionalBoolFalse
 }

@@ -138,9 +138,9 @@ clean-$(1):
 	-$(RM) $(OUTDIR)/$(BINNAME)-$(1)$(call getExt,$(1))
 	-$(RM) $(OUTDIR)/$(BINNAME)-$(1).sbom.json
 
-distribution-bin: $(DISTDIR)/$(BINNAME)-$(1)$(call getExt,$(1))
-$(DISTDIR)/$(BINNAME)-$(1)$(call getExt,$(1)): $(OUTDIR)/$(BINNAME)-$(1)$(call getExt,$(1)) $(DISTDIR)/
-	$(CP) $$< $$@
+#distribution-bin: $(DISTDIR)/$(BINNAME)-$(1)$(call getExt,$(1))
+#$(DISTDIR)/$(BINNAME)-$(1)$(call getExt,$(1)): $(OUTDIR)/$(BINNAME)-$(1)$(call getExt,$(1)) $(DISTDIR)/
+#	$(CP) $$< $$@
 
 distribution-bin: $(DISTDIR)/$(BINNAME)-$(1).zip
 $(DISTDIR)/$(BINNAME)-$(1).zip: $(OUTDIR)/$(BINNAME)-$(1)$(call getExt,$(1)) $(OUTDIR)/$(BINNAME)-$(1).sbom.json $(OUTDIR)/LICENSE $(DISTDIR)/

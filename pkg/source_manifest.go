@@ -13,6 +13,10 @@ import (
 
 var _ SourceReference = (*SourceManifestReference)(nil)
 
+func (r *SourceManifestReference) GetName() string {
+	return r.name
+}
+
 func (r *SourceManifestReference) GetManifests(ctx context.Context) ([]manifest.ListUpdate, error) {
 	// Allow the user to create the manifest directly.
 	item := manifest.ListUpdate{
