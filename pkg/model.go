@@ -9,15 +9,18 @@ import (
 	digest "github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"go.podman.io/image/v5/manifest"
+	"go.podman.io/image/v5/signature"
 	"go.podman.io/image/v5/transports/alltransports"
 	"go.podman.io/image/v5/types"
 )
 
 // ImageConnection points to a defined image somewhere, using a supported podman image transport.
 type ImageConnection struct {
-	ImageUri string
-	Tags     []string
-	System   *types.SystemContext
+	ImageUri         string
+	Tags             []string
+	System           *types.SystemContext
+	Policy           *signature.Policy
+	RequireSignature bool
 }
 
 // SourceReference allows extracting information to put into the target.
@@ -68,10 +71,12 @@ func AsSourceManifestReference(imageName string) *SourceManifestReference {
 
 // BearingImage references an image that contains either the manifest index or the data blob.
 type BearingImage struct {
-	name string
-	sys  *types.SystemContext
-	ref  types.ImageReference
-	tags []string
+	name         string
+	sys          *types.SystemContext
+	ref          types.ImageReference
+	policy       *signature.Policy
+	reqSignature bool
+	tags         []string
 }
 
 // AsBearingImage constructs a BearingImage from an image connection.
@@ -84,9 +89,11 @@ func AsBearingImage(conn ImageConnection) (*BearingImage, error) {
 		return nil, err
 	}
 	return &BearingImage{
-		name: conn.ImageUri,
-		tags: conn.Tags,
-		sys:  conn.System,
-		ref:  ref,
+		name:         conn.ImageUri,
+		tags:         conn.Tags,
+		sys:          conn.System,
+		policy:       conn.Policy,
+		reqSignature: conn.RequireSignature,
+		ref:          ref,
 	}, nil
 }

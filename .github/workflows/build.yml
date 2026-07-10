@@ -20,8 +20,12 @@ jobs:
                 sudo apt-get update
                 DEBIAN_FRONTEND=noninteractive sudo apt-get install -y \
                     libbtrfs-dev \
+                    libassuan-dev \
+                    libgpgme-dev \
                     golang \
-                    make
+                    make \
+                    ca-certificates \
+                    openssl
 
             - name: Build & Test
               run: |

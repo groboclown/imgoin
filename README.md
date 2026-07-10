@@ -59,6 +59,12 @@ The tool reads settings in the form `setting-name=setting_value`.  You can eithe
 
 * `include-contents=yes|no`
     * Set to 'yes' to have the target image save all the contents of this source image.  Without it, the target image will store just a reference.  Most multi-architecture images store just a reference.
+* `policy=FILE`
+    * Use a signature policy file at the given path.  Used for checking the source images.
+* `insecure-policy=yes|no`
+    * Set to 'yes' to force the program to ignore signatures on source images.
+* `require-signed=yes|no`
+    * Set to 'yes' for require all source images to have a valid signature.  Source images without a signature will cause a failure.
 
 Additionally, you can pass image transport in the form 'image=sha256:ABC...', which allows you to explicitly declare the image reference information.
 
@@ -139,7 +145,7 @@ You can find a set of examples for using the tool in combination with other cont
 
 ## Limitations
 
-Currently, this does not support checking source image signatures, nor does it support signing target images.
+This tool does not sign the generated (target) image.  Signing should happen through other tools, such as `skopeo`.
 
 ## A Refresher: Manifest Images
 

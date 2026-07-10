@@ -13,7 +13,7 @@ FROM public.ecr.aws/docker/library/golang:1.26 AS build
 RUN set -x \
     && apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y \
-        libbtrfs-dev
+        libbtrfs-dev libgpgme-dev libassuan-dev
 
 COPY main.go go.mod go.sum version.txt /code/
 COPY pkg/ /code/pkg/

@@ -20,17 +20,24 @@ make go-dependencies
 Additionally, because this depends upon the container library, you'll need these installed when building on Linux:
 
 * btrfs headers
+* gpgme headers
 
 For Ubuntu, you can install it with:
 
 ```shell
-sudo apt-get install libbtrfs-dev
+apt-get install libbtrfs-dev libassuan-dev libgpgme-dev
 ```
 
 For Arch Linux, you can install it with:
 
 ```shell
-sudo pacman -Sy btrfs-progs
+pacman -S btrfs-progs gpgme
+```
+
+For Fedora Linux, you can install it with:
+
+```shell
+dnf install libbtrfs-devel gpgme-devel libassuan-devel
 ```
 
 ### Run

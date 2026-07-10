@@ -11,22 +11,41 @@ import (
 
 	digest "github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	cimage "go.podman.io/image/v5/image"
 	"go.podman.io/image/v5/manifest"
+	"go.podman.io/image/v5/signature"
 	"go.podman.io/image/v5/types"
 )
 
 type SrcImage struct {
-	name         string
-	img          types.ImageSource
-	copyContents bool
+	name             string
+	img              types.ImageSource
+	copyContents     bool
+	manifestBlob     []byte
+	manifestMIMEType string
 }
 
 func (b *BearingImage) AsSourceImage(ctx context.Context, copyContents bool) (*SrcImage, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	img, err := b.ref.NewImageSource(ctx, b.sys)
 	if err != nil {
 		return nil, err
 	}
-	return &SrcImage{img: img, copyContents: copyContents, name: b.name}, nil
+
+	manifestBlob, manifestMIMEType, err := b.readSourceImageManifest(ctx, img)
+	if err != nil {
+		_ = img.Close()
+		return nil, err
+	}
+	return &SrcImage{
+		name:             b.name,
+		img:              img,
+		copyContents:     copyContents,
+		manifestBlob:     manifestBlob,
+		manifestMIMEType: manifestMIMEType,
+	}, nil
 }
 
 var _ SourceReference = (*SrcImage)(nil)
@@ -36,7 +55,7 @@ func (r *SrcImage) GetName() string {
 }
 
 func (r *SrcImage) GetManifests(ctx context.Context) ([]manifest.ListUpdate, error) {
-	raw, mime, err := r.img.GetManifest(ctx, nil)
+	raw, mime, err := r.readManifestBlob(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +147,7 @@ func (r *SrcImage) GetBlob(ctx context.Context, blob types.BlobInfo) (io.ReadClo
 		}
 
 		// Try a specific manifest within the image.
-		raw, _, err := r.manifestBlob(ctx, &blob.Digest)
+		raw, _, err := r.readManifestBlob(ctx, &blob.Digest)
 		if err == nil {
 			if digestValue, digestErr := manifest.Digest(raw); digestErr == nil && digestValue == blob.Digest {
 				return io.NopCloser(bytes.NewReader(raw)), nil
@@ -136,7 +155,7 @@ func (r *SrcImage) GetBlob(ctx context.Context, blob types.BlobInfo) (io.ReadClo
 		}
 
 		// Try the index manifest.
-		raw, _, err = r.manifestBlob(ctx, nil)
+		raw, _, err = r.readManifestBlob(ctx, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -157,7 +176,7 @@ func (r *SrcImage) GetBlob(ctx context.Context, blob types.BlobInfo) (io.ReadClo
 }
 
 func (r *SrcImage) GetBlobsToCopy(ctx context.Context) ([]types.BlobInfo, error) {
-	raw, mime, err := r.img.GetManifest(ctx, nil)
+	raw, mime, err := r.readManifestBlob(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +191,7 @@ func (r *SrcImage) GetBlobsToCopy(ctx context.Context) ([]types.BlobInfo, error)
 
 		ret := make([]types.BlobInfo, 0, len(list.Instances()))
 		for _, digestValue := range list.Instances() {
-			instRaw, instMime, err := r.manifestBlob(ctx, &digestValue)
+			instRaw, instMime, err := r.readManifestBlob(ctx, &digestValue)
 			if err != nil {
 				return nil, err
 			}
@@ -267,8 +286,41 @@ func parseConfig(ctx context.Context, img types.ImageSource, config types.BlobIn
 	return &sc, nil
 }
 
-func (r *SrcImage) manifestBlob(ctx context.Context, instanceDigest *digest.Digest) ([]byte, string, error) {
+func (r *SrcImage) readManifestBlob(ctx context.Context, instanceDigest *digest.Digest) ([]byte, string, error) {
+	if instanceDigest == nil && r.manifestBlob != nil {
+		return r.manifestBlob, r.manifestMIMEType, nil
+	}
 	return r.img.GetManifest(ctx, instanceDigest)
+}
+
+func (b *BearingImage) readSourceImageManifest(ctx context.Context, img types.ImageSource) ([]byte, string, error) {
+	if b.policy == nil {
+		return img.GetManifest(ctx, nil)
+	}
+	policyContext, err := signature.NewPolicyContext(b.policy)
+	if err != nil {
+		return nil, "", err
+	}
+	policyContext.RequireSignatureVerification(b.reqSignature)
+
+	defer func() {
+		_ = policyContext.Destroy()
+	}()
+
+	unparsed := cimage.UnparsedInstance(img, nil)
+	allowed, err := policyContext.IsRunningImageAllowed(ctx, unparsed)
+	if err != nil {
+		return nil, "", fmt.Errorf("source image signature policy for %s: %w", b.name, err)
+	}
+	if !allowed {
+		return nil, "", fmt.Errorf("source image %s rejected by signature policy", b.name)
+	}
+
+	manifestBlob, manifestMIMEType, err := unparsed.Manifest(ctx)
+	if err != nil {
+		return nil, "", err
+	}
+	return bytes.Clone(manifestBlob), manifestMIMEType, nil
 }
 
 func sourceManifestMIMEType(raw []byte, mime string) string {

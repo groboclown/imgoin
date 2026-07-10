@@ -23,7 +23,7 @@ func TestTransportRequireRootless(t *testing.T) {
 		{
 			name:  "containers storage destination",
 			image: "oci-archive:/tmp/x.tar",
-			want:  true,
+			want:  false,
 		},
 		{
 			name:  "non storage images",

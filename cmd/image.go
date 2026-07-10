@@ -9,8 +9,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/distribution/reference"
 	imgoin "github.com/groboclown/imgoin/pkg"
 	"go.podman.io/image/v5/pkg/cli/basetls/tlsdetails"
+	"go.podman.io/image/v5/signature"
 	"go.podman.io/image/v5/types"
 )
 
@@ -54,6 +56,10 @@ type imageOptions struct {
 	tags []string
 
 	baseUserAgent string
+
+	// signing options
+	insecurePolicy bool
+	requireSigned  bool
 }
 
 // parseImageArgs reads in the arguments for an image, starting with the given index.
@@ -182,22 +188,6 @@ func (o *imageOptions) handleSetting(key, value string) error {
 		o.sys.DockerBearerRegistryToken = value
 
 	// ----------------------------------
-	// Note: currently not needing a signature.PolicyContext
-	// because this doesn't yet support signatures.
-
-	// Path to a trust policy file
-	case "policy":
-		return fmt.Errorf("signature policies not supported")
-
-	// Run the tool without any policy check
-	case "insecure-policy":
-		// Does nothing.
-
-	// Require any pulled image to be signed
-	case "require-signed":
-		return fmt.Errorf("signatures not supported")
-
-	// ----------------------------------
 	// Connection information
 
 	// Use certificates at `PATH` (*.crt, *.cert, *.key) to connect to the registry or daemon
@@ -301,12 +291,46 @@ func (o *imageOptions) handleSetting(key, value string) error {
 	case "tmp-dir":
 		o.sys.BigFilesTemporaryDir = value
 
+	// ----------------------------------
+	// Source Images (non-explicit)
+
+	// Path to a trust policy file
+	case "policy":
+		o.sys.SignaturePolicyPath = value
+
+	// Run the tool without any policy check
+	case "insecure-policy":
+		val, err := parseBool(value)
+		if err != nil {
+			return err
+		}
+		o.insecurePolicy = val
+
+	// Require any pulled image to be signed
+	case "require-signed":
+		val, err := parseBool(value)
+		if err != nil {
+			return err
+		}
+		o.requireSigned = val
+
 	case "include-contents":
 		val, err := parseBool(value)
 		if err != nil {
 			return err
 		}
 		o.includeContents = val
+
+	// ----------------------------------
+	// Target Images
+
+	case "sign-identity":
+		_, err := reference.ParseNamed(value)
+		if err != nil {
+			return fmt.Errorf("Could not parse sign-identity: %v", err)
+		}
+		// o.signIdentity = signIdentity
+		return fmt.Errorf("signing images not currently supported")
 
 	case "tag":
 		if o.tags == nil {
@@ -344,9 +368,19 @@ func (o *imageOptions) asSource(ctx context.Context) (imgoin.SourceReference, er
 	if err != nil {
 		return nil, err
 	}
+	var policy *signature.Policy = nil
+	if !o.insecurePolicy {
+		p, err := signature.DefaultPolicy(o.sys)
+		if err != nil {
+			return nil, err
+		}
+		policy = p
+	}
+
 	img, err := imgoin.AsBearingImage(imgoin.ImageConnection{
 		ImageUri: o.image,
 		System:   sys,
+		Policy:   policy,
 	})
 	if err != nil {
 		return nil, err
