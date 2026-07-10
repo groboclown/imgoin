@@ -3,16 +3,24 @@
 GO = go
 CYCLONEDX = cyclonedx-gomod
 GOVULNCHECK = govulncheck
+RM = rm -f
+RRM = rm -rf
+MKDIR = mkdir -p
+CP = cp
+ZIPF = zip -9jD
+
 GO_BUILD_FLAGS =
 SBOM_FLAGS = -licenses=true -json=true -std=true
 
 SUPPORTED_PLATFORMS := linux-arm64 linux-amd64 darwin-arm64 windows-amd64
 
 OUTDIR := build
+DISTDIR := $(OUTDIR)/distribution
 BINNAME := imgoin
 BINEXT := $(subst Win,.exe,$(findstring Win,$(OS)))
 
-SOURCE_FILES = $(wildcard *.go pkg/*.go pkg/fixtures/*.go)
+SOURCE_FILES = $(wildcard *.go pkg/*.go) go.mod go.sum
+TEST_FILES = $(wildcard pkg/*_test.go pkg/fixtures/*)
 
 ## dev                Run the standard development tasks.
 .PHONY: dev
@@ -21,24 +29,27 @@ dev: format
 ## clean              Remove created files.
 .PHONY: clean
 clean:
-	-rm -f $(OUTDIR)/$(BINNAME)$(BINEXT)
+	-$(RM) $(BINNAME)$(BINEXT)
+	-$(RRM) $(DISTDIR)
 
 ## all                Run the full release tasks.
 .PHONY: all
 all: clean
 
 ## build              Build the binary for your current platform.
+##                    Places the binary at the root of the project directory,
+##                    for easy consumption.
 .PHONY: build
 dev: build
-build: $(OUTDIR)/$(BINNAME)$(BINEXT)
-$(OUTDIR)/$(BINNAME)$(BINEXT): $(OUTDIR)/ $(SOURCE_FILES)
+build: $(BINNAME)$(BINEXT)
+$(BINNAME)$(BINEXT): $(OUTDIR)/ $(SOURCE_FILES)
 	$(GO) build -o $@
 
 ## test               Run unit tests.
 .PHONY: test
 dev: test
 all: test
-test:
+test: $(TEST_FILES) $(SOURCE_FILES)
 	$(GO) test ./...
 
 
@@ -58,6 +69,14 @@ all: all-binaries
 ## all-sboms          Generate all supported platform SBOMs.
 .PHONY: all-sboms
 all: all-sboms
+
+
+## distribution       Create all the files included in the distribution.
+.PHONY: distribution
+distribution: distribution-bin
+
+.PHONY: distribution-bin
+distribution-bin:
 
 
 ## go-dependencies    Install required go-based dependencies.
@@ -84,16 +103,26 @@ go-dep-cyclonedx:
 
 
 $(OUTDIR)/:
-	mkdir -p $@
+	-$(MKDIR) $@
 
+$(DISTDIR)/: $(OUTDIR)/
+	-$(MKDIR) $@
 
-## Parameterize the per-platform execution.
+$(OUTDIR)/LICENSE: LICENSE $(OUTDIR)/
+	$(CP) LICENSE $@
+
+# Parameterize the per-platform execution.
+#
+# This uses a macro to construct the targets for the 'all-binaries' and
+# 'all-sboms' and 'clean' targets, one for each supported platform.
+# Without this, the build would include many cut-and-paste targets.
 getOs = $(firstword $(subst -, ,$(1)))
 getArch = $(word 2,$(subst -, ,$(1)))
 getExt = $(subst windows,.exe,$(findstring windows,$(1)))
 
 define OSBuild =
 $(info Supporting $(call getOs,$(1))-$(call getArch,$(1)))
+
 
 all-binaries: $(OUTDIR)/$(BINNAME)-$(1)$(call getExt,$(1))
 $(OUTDIR)/$(BINNAME)-$(1)$(call getExt,$(1)): $(OUTDIR)/ $(SOURCE_FILES)
@@ -106,8 +135,17 @@ $(OUTDIR)/$(BINNAME)-$(1).sbom.json: go.mod go.sum
 .PHONY: clean-$(1)
 clean: clean-$(1)
 clean-$(1):
-	-rm -f $(OUTDIR)/$(BINNAME)-$(1)$(call getExt,$(1))
-	-rm -f $(OUTDIR)/$(BINNAME)-$(1).sbom.json
+	-$(RM) $(OUTDIR)/$(BINNAME)-$(1)$(call getExt,$(1))
+	-$(RM) $(OUTDIR)/$(BINNAME)-$(1).sbom.json
+
+distribution-bin: $(DISTDIR)/$(BINNAME)-$(1)$(call getExt,$(1))
+$(DISTDIR)/$(BINNAME)-$(1)$(call getExt,$(1)): $(OUTDIR)/$(BINNAME)-$(1)$(call getExt,$(1)) $(DISTDIR)/
+	$(CP) $$< $$@
+
+distribution-bin: $(DISTDIR)/$(BINNAME)-$(1).zip
+$(DISTDIR)/$(BINNAME)-$(1).zip: $(OUTDIR)/$(BINNAME)-$(1)$(call getExt,$(1)) $(OUTDIR)/$(BINNAME)-$(1).sbom.json $(OUTDIR)/LICENSE $(DISTDIR)/
+	$(ZIPF) $$@ $$^
+
 
 endef
 

@@ -1,7 +1,5 @@
 name: Build and Validate
 on:
-    push:
-        branches: [main, dev]
     pull_request:
 
 jobs:
@@ -15,10 +13,12 @@ jobs:
             - name: Fetch Sources
               uses: actions/checkout@v3
             
-            - name: Install Dependencies
+            - name: Install OS Dependencies
+              # The base setup should already have many of these installed,
+              # but this makes it explicit.
               run: |
-                apt-get update \
-                && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+                sudo apt-get update
+                DEBIAN_FRONTEND=noninteractive sudo apt-get install -y \
                     libbtrfs-dev \
                     golang \
                     make

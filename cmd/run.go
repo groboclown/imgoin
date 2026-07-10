@@ -37,7 +37,7 @@ func Exec(name, version string, args []string) int {
 			printVersion(version)
 			return ret
 		case "--source":
-			source, idx, err := parseImageOptions(args, index+1)
+			source, idx, err := parseImageArgs(version, args, index+1)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 				showHelp = true
@@ -47,7 +47,7 @@ func Exec(name, version string, args []string) int {
 			}
 			index = idx
 		case "--target":
-			tgt, idx, err := parseImageOptions(args, index+1)
+			tgt, idx, err := parseImageArgs(version, args, index+1)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 				showHelp = true

@@ -10,6 +10,7 @@ import (
 	imgoin "github.com/groboclown/imgoin/pkg"
 	"github.com/groboclown/imgoin/pkg/fixtures"
 	"go.podman.io/image/v5/manifest"
+	"go.podman.io/image/v5/types"
 )
 
 func Test_IndexLoad(t *testing.T) {
@@ -20,8 +21,8 @@ func Test_IndexLoad(t *testing.T) {
 	}
 
 	img, err := imgoin.AsBearingImage(imgoin.ImageConnection{
-		ImageUri:   fmt.Sprintf("oci-archive:%s", tarFile),
-		Connection: &imgoin.RepositoryConnection{},
+		ImageUri: fmt.Sprintf("oci-archive:%s", tarFile),
+		System:   &types.SystemContext{},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -48,8 +49,8 @@ func Test_DockerImageLoad(t *testing.T) {
 	}
 
 	img, err := imgoin.AsBearingImage(imgoin.ImageConnection{
-		ImageUri:   fmt.Sprintf("docker-archive:%s", tarFile),
-		Connection: &imgoin.RepositoryConnection{},
+		ImageUri: fmt.Sprintf("docker-archive:%s", tarFile),
+		System:   &types.SystemContext{},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -108,8 +109,8 @@ func Test_OCIImageLoad(t *testing.T) {
 	}
 
 	img, err := imgoin.AsBearingImage(imgoin.ImageConnection{
-		ImageUri:   fmt.Sprintf("oci-archive:%s", tarFile),
-		Connection: &imgoin.RepositoryConnection{},
+		ImageUri: fmt.Sprintf("oci-archive:%s", tarFile),
+		System:   &types.SystemContext{},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -142,8 +143,8 @@ func Test_OCIImageCopyContents(t *testing.T) {
 	}
 
 	img, err := imgoin.AsBearingImage(imgoin.ImageConnection{
-		ImageUri:   fmt.Sprintf("oci-archive:%s", tarFile),
-		Connection: &imgoin.RepositoryConnection{},
+		ImageUri: fmt.Sprintf("oci-archive:%s", tarFile),
+		System:   &types.SystemContext{},
 	})
 	if err != nil {
 		t.Fatal(err)

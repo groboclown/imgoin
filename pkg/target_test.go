@@ -24,8 +24,8 @@ func loadTestSource(t *testing.T, copyContents bool) (*imgoin.SrcImage, []manife
 	}
 
 	img, err := imgoin.AsBearingImage(imgoin.ImageConnection{
-		ImageUri:   fmt.Sprintf("oci-archive:%s", tarFile),
-		Connection: &imgoin.RepositoryConnection{},
+		ImageUri: fmt.Sprintf("oci-archive:%s", tarFile),
+		System:   &types.SystemContext{},
 	})
 	if err != nil {
 		t.Fatal(err)

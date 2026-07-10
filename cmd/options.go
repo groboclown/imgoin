@@ -7,74 +7,126 @@ import (
 	"strings"
 )
 
-func splitFileArgs(filename string) ([]string, error) {
+type splitMode int
+
+const (
+	// Ordering matters, so no iota use.
+	smArgSearch splitMode = 0
+	smComment   splitMode = 1
+	smNormal    splitMode = 2
+	smQuote     splitMode = 3
+	smEscQuote  splitMode = 4
+	smEscape    splitMode = 5
+
+	// Marker for the first mode for parsing within an argument.
+	smInArgument = smNormal
+)
+
+func SplitFileArgs(filename string) ([]string, error) {
 	data_bin, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
+	return SplitArgs(string(data_bin))
+}
 
-	data_str := string(data_bin)
+func SplitArgs(data_str string) ([]string, error) {
 	ret := make([]string, 0)
 	buff := strings.Builder{}
-	mode := 0
-	esc := ' '
+	mode := smArgSearch
+	quot := ' '
 	for _, c := range data_str {
 		switch mode {
-		case 0:
+		case smArgSearch:
 			// Start of arg search
-			if c == ' ' || c == '\n' || c == '\r' {
+			switch c {
+			case ' ', '\t', '\n', '\r':
 				// Keep searching
-				continue
-			} else {
-				mode = 1
+			case '#':
+				// Comment start
+				mode = smComment
+			case '\'', '"':
+				// Start an argument, with quoted mode.
+				quot = c
+				mode = smQuote
+			case '\\':
+				// Start an argument, begin with an escaped character.
+				mode = smEscape
+			default:
+				// Start an argument, normal mode.
+				mode = smNormal
+				if _, err := buff.WriteRune(c); err != nil {
+					return nil, err
+				}
 			}
-			fallthrough
-		case 1:
-			// Inside an argument
-			if c == ' ' || c == '\n' || c == '\r' {
-				// End of argument.
+		case smComment:
+			// Inside a newline-terminating comment.
+			// Only care about newlines.
+			switch c {
+			case '\n', '\r':
+				mode = smArgSearch
+			}
+		case smNormal:
+			// Inside an argument with normal parsing characteristics.
+			switch c {
+			case ' ', '\t', '\n', '\r':
+				// End of argument, switch to normal start arg search.
 				ret = append(ret, buff.String())
 				buff.Reset()
-				mode = 0
-			} else if c == '\'' || c == '"' {
-				esc = c
-				mode = 2
-			} else if c == '\\' {
-				mode = 4
-			} else {
+				mode = smArgSearch
+			case '#':
+				// End of argument, then start a comment.
+				ret = append(ret, buff.String())
+				buff.Reset()
+				mode = smComment
+			case '\'', '"':
+				// Switch to quoted mode.
+				quot = c
+				mode = smQuote
+			case '\\':
+				// Read an escaped character.
+				mode = smEscape
+			default:
+				// Normal argument character
 				if _, err := buff.WriteRune(c); err != nil {
 					return nil, err
 				}
 			}
-		case 2:
+		case smQuote:
 			// Quoted partial string.
 			// Ending the quote does not end the argument.
-			if c == esc {
-				mode = 0
-			} else if c == '\\' {
-				mode = 2
-			} else {
+			switch c {
+			case quot:
+				// End quote.  This doesn't go back to argument search,
+				// but instead goes back to in-argument reading.
+				// This allows for the form `abc" "def`.
+				mode = smNormal
+			case '\\':
+				// Escape the next character inside the quote.
+				mode = smEscQuote
+			default:
+				// Quoted character read.
 				if _, err := buff.WriteRune(c); err != nil {
 					return nil, err
 				}
 			}
-		case 3:
+		case smEscQuote:
 			// Escape inside quote
 			// Note: no special unicode handling.
 			if _, err := buff.WriteRune(c); err != nil {
 				return nil, err
 			}
-			mode = 2
-		case 4:
+			mode = smQuote
+		case smEscape:
 			// Escape outside quote
 			// Note: no special unicode handling.
 			if _, err := buff.WriteRune(c); err != nil {
 				return nil, err
 			}
-			mode = 1
+			mode = smNormal
 		}
 	}
-	if mode > 0 {
+	if mode >= smInArgument {
 		ret = append(ret, buff.String())
 	}
 	return ret, nil
