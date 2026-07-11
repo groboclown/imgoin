@@ -22,6 +22,7 @@ BINEXT := $(subst Win,.exe,$(findstring Win,$(OS)))
 SOURCE_FILES = $(wildcard *.go pkg/*.go) go.mod go.sum
 TEST_FILES = $(wildcard pkg/*_test.go pkg/fixtures/*)
 
+
 ## dev                Run the standard development tasks.
 .PHONY: dev
 dev: format
@@ -32,9 +33,9 @@ clean:
 	-$(RM) $(BINNAME)$(BINEXT)
 	-$(RRM) $(DISTDIR)
 
-## all                Run the full release tasks.
+## all                Run the full release tasks.  Does not clean.
 .PHONY: all
-all: clean
+all:
 
 ## build              Build the binary for your current platform.
 ##                    Places the binary at the root of the project directory,
@@ -88,13 +89,24 @@ distribution-bin:
 
 ## go-dependencies    Install required go-based dependencies.
 .PHONY: go-dependencies
-all: go-dependencies
+go-dependencies:
 
 
 ## format             Reformat the code using Go rules.
 .PHONY: format
 format: $(SOURCE_FILES)
 	$(GO) fmt ./...
+
+
+## crypto-fix         Set up vendor directory for use with the OpenPGP work-around.
+.PHONY: crypto-fix
+crypto-fix: vendor/
+	@echo Applying the ProtonMail OpenPGP hack to avoid GO-2026-5932.
+	sed -i 's|"golang.org/x/crypto/openpgp"|"github.com/ProtonMail/go-crypto/openpgp"|g' vendor/go.podman.io/image/v5/signature/*.go
+	sed -i 's|md\.SignatureV3|md\.Signature|g' vendor/go.podman.io/image/v5/signature/*.go
+
+vendor/:
+	$(GO) mod vendor
 
 
 .PHONY: go-dep-vulncheck
@@ -123,6 +135,8 @@ $(OUTDIR)/LICENSE: LICENSE $(OUTDIR)/
 # This uses a macro to construct the targets for the 'all-binaries' and
 # 'all-sboms' and 'clean' targets, one for each supported platform.
 # Without this, the build would include many cut-and-paste targets.
+#
+# Note: the SBOM generation will fail if run with the vendor directory intact.
 getOs = $(firstword $(subst -, ,$(1)))
 getArch = $(word 2,$(subst -, ,$(1)))
 getExt = $(subst windows,.exe,$(findstring windows,$(1)))

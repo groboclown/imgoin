@@ -24,10 +24,7 @@ jobs:
           sudo apt-get update
           DEBIAN_FRONTEND=noninteractive sudo apt-get install -y \
               libbtrfs-dev \
-              libassuan-dev \
-              libgpgme-dev \
               golang \
-              clang \
               make \
               ca-certificates \
               openssl
@@ -42,15 +39,18 @@ jobs:
           ls $HOME/go/bin
 
       - name: Build & Test
-        # Because this uses some libraries that use CGO, it can't compile
-        # easily to non-native architectures.
-        # There's also a problem when running for Windows, where it
-        # generates the error:
-        #   gcc: error: unrecognized command-line option '-mthreads'; did you mean '-pthread'?
-        # darwin has its own set of issues, specifically:
-        #   clang: error: unsupported option '-arch' for target 'x86_64-pc-linux-gnu'
+        # This uses a hack to patch the images/signatures package.
+        # Without it, the go.podman.io/image/v5/signature package will pull
+        # in the golang.org/x/crypto/openpgp package, which suffers from
+        # GO-2026-5932.
+
+        # Also, for some reason I haven't figured out yet, the cyclonedx
+        # sbom generator doesn't work right if running with this vendored
+        # environment for cross platform.  That unfortunately mis-directs
+        # the vulnerabilities to include the bad openpgp package, though.
         run: |
           export GOROOT=$($HOME/go/bin/go1.26.5 env GOROOT)
           export PATH=$GOROOT/bin:$HOME/go/bin:$PATH
-          export CGO_ENABLED=1
-          make all SUPPORTED_PLATFORMS="linux-amd64"
+          make all-sboms
+          make crypto-fix
+          make all
