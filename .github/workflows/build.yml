@@ -29,10 +29,16 @@ jobs:
                     openssl
                 go install golang.org/dl/go1.26.5@latest
                 $HOME/go/bin/go1.26.5 download
-                export PATH=$($HOME/go/bin/go1.26.5 env GOROOT)/bin:$PATH
+                export GOROOT=$($HOME/go/bin/go1.26.5 env GOROOT)
+                export PATH=$GOROOT/bin:$PATH
                 make go-dependencies
+                echo $GOROOT/bin
+                ls $GOROOT/bin
+                echo $HOME/go/bin
+                ls $HOME/go/bin
 
             - name: Build & Test
               run: |
-                export PATH=$($HOME/go/bin/go1.26.5 env GOROOT)/bin:$PATH
+                export GOROOT=$($HOME/go/bin/go1.26.5 env GOROOT)
+                export PATH=$GOROOT/bin:$PATH
                 make all
