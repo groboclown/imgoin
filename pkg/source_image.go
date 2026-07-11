@@ -297,6 +297,7 @@ func (b *BearingImage) readSourceImageManifest(ctx context.Context, img types.Im
 	if b.policy == nil {
 		return img.GetManifest(ctx, nil)
 	}
+
 	policyContext, err := signature.NewPolicyContext(b.policy)
 	if err != nil {
 		return nil, "", err
@@ -308,6 +309,14 @@ func (b *BearingImage) readSourceImageManifest(ctx context.Context, img types.Im
 	}()
 
 	unparsed := cimage.UnparsedInstance(img, nil)
+
+	// TODO This signature check uses the x/crypto/openpgp library in an effort to keep
+	//      a pure Go implementation.
+	//      The quick alternative requires CGO by removing the 'containers_image_openpgp' tag in the Makefile.
+	//      However, that essentially destroys the ability to run a multi-arch build from a single computer.
+	//      The slow, high maintenance alternative replaces this call chain with a fork of the code,
+	//      and replace the openpgp usage with https://github.com/ProtonMail/go-crypto .
+
 	allowed, err := policyContext.IsRunningImageAllowed(ctx, unparsed)
 	if err != nil {
 		return nil, "", fmt.Errorf("source image signature policy for %s: %w", b.name, err)

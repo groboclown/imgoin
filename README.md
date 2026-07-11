@@ -147,6 +147,8 @@ You can find a set of examples for using the tool in combination with other cont
 
 This tool does not sign the generated (target) image.  Signing should happen through other tools, such as `skopeo`.
 
+For compatibility, this tool currently relies on the unsupported and insecure library `x/crypto/openpgp`.  A pending issue will swap out the signature checking with another library.
+
 ## A Refresher: Manifest Images
 
 There exist several formats for container images, with the primary types of the OCI and Docker v2 formats.  They have a general form of a main manifest file that points to internally stored "blobs" by their hashes.

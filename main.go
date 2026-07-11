@@ -25,7 +25,7 @@ func main() {
 
 func run(args []string) int {
 	parsed, res := cmd.ParseArgs(args[0], Version, args[1:])
-	if res != 0 {
+	if parsed == nil {
 		os.Exit(res)
 	}
 	if parsed.RequiresRootless() {

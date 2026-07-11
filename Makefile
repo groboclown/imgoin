@@ -9,10 +9,10 @@ MKDIR = mkdir -p
 CP = cp
 ZIPF = zip -9jD
 
-GO_BUILD_FLAGS =
+GO_BUILD_FLAGS = -tags 'containers_image_openpgp'
 SBOM_FLAGS = -licenses=true -json=true -std=true
 
-SUPPORTED_PLATFORMS := linux-arm64 linux-amd64 darwin-arm64 windows-amd64
+SUPPORTED_PLATFORMS = linux-arm64 linux-amd64 darwin-arm64 darwin-amd64 windows-amd64
 
 OUTDIR := build
 DISTDIR := $(OUTDIR)/distribution
@@ -43,14 +43,14 @@ all: clean
 dev: build
 build: $(BINNAME)$(BINEXT)
 $(BINNAME)$(BINEXT): $(OUTDIR)/ $(SOURCE_FILES)
-	$(GO) build -o $@
+	$(GO) build $(GO_BUILD_FLAGS) -o $@
 
 ## test               Run unit tests.
 .PHONY: test
 dev: test
 all: test
 test: $(TEST_FILES) $(SOURCE_FILES)
-	$(GO) test ./...
+	$(GO) test $(GO_BUILD_FLAGS) ./...
 
 
 ## vulncheck          Check the code for use of vulnerable dependencies.
@@ -133,7 +133,7 @@ $(info Supporting $(call getOs,$(1))-$(call getArch,$(1)))
 
 all-binaries: $(OUTDIR)/$(BINNAME)-$(1)$(call getExt,$(1))
 $(OUTDIR)/$(BINNAME)-$(1)$(call getExt,$(1)): $(OUTDIR)/ $(SOURCE_FILES)
-	GOOS=$(call getOs,$(1)) GOARCH=$(call getArch,$(1)) $(GO) build -o $$@
+	GOOS=$(call getOs,$(1)) GOARCH=$(call getArch,$(1)) $(GO) build $(GO_BUILD_FLAGS) -o $$@
 
 all-sboms: $(OUTDIR)/$(BINNAME)-$(1).sbom.json
 $(OUTDIR)/$(BINNAME)-$(1).sbom.json: go.mod go.sum
