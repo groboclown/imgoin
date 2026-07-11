@@ -16,6 +16,9 @@ jobs:
             - name: Install OS Dependencies
               # The base setup should already have many of these installed,
               # but this makes it explicit.
+              # Even with this explicit golang version install, the dependencies
+              # install into the standard go home directory, rather than the
+              # version directory.
               run: |
                 set +x
                 sudo apt-get update
@@ -40,5 +43,5 @@ jobs:
             - name: Build & Test
               run: |
                 export GOROOT=$($HOME/go/bin/go1.26.5 env GOROOT)
-                export PATH=$GOROOT/bin:$PATH
+                export PATH=$GOROOT/bin:$HOME/go/bin:$PATH
                 make all
