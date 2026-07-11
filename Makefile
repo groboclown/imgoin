@@ -54,10 +54,17 @@ test: $(TEST_FILES) $(SOURCE_FILES)
 
 
 ## vulncheck          Check the code for use of vulnerable dependencies.
+##                    Does not stop the build on a discovered vulnerability.
 .PHONY: vulncheck
 dev: vulncheck
 all: vulncheck
-vulncheck: $(SOURCE_FILES)
+vulncheck: $(SOURCE_FILES) $(TEST_FILES)
+	-$(GOVULNCHECK) ./...
+
+## vulncheck-required Check the code for use of vulnerable dependencies.
+##                    Stops the build on a discovered vulnerability.
+.PHONY: vulncheck-required
+vulncheck-required: $(SOURCE_FILES) $(TEST_FILES)
 	$(GOVULNCHECK) ./...
 
 
