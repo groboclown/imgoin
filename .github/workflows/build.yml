@@ -16,23 +16,23 @@ jobs:
             - name: Install OS Dependencies
               # The base setup should already have many of these installed,
               # but this makes it explicit.
-              # This needs to install golang-backports to allow Ubuntu 24.04
-              # installation of go 1.26.
               run: |
                 set +x
                 sudo apt-get update
-                DEBIAN_FRONTEND=noninteractive sudo apt-get install -y software-properties-common
-                sudo add-apt-repository ppa:longsleep/golang-backports -y
                 DEBIAN_FRONTEND=noninteractive sudo apt-get install -y \
                     libbtrfs-dev \
                     libassuan-dev \
                     libgpgme-dev \
-                    golang-1.26 \
+                    golang \
                     make \
                     ca-certificates \
                     openssl
+                go install golang.org/dl/go1.26.5@latest
+                $HOME/go/bin/go1.26.5 download
+                export PATH=$($HOME/go/bin/go1.26.5 env GOROOT)/bin:$PATH
                 make go-dependencies
 
             - name: Build & Test
               run: |
-                PATH=$HOME/go/bin:$PATH make all
+                export PATH=$($HOME/go/bin/go1.26.5 env GOROOT)/bin:$PATH
+                make all
