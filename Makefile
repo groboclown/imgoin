@@ -150,7 +150,7 @@ $(OUTDIR)/$(BINNAME)-$(1)$(call getExt,$(1)): $(OUTDIR)/ $(SOURCE_FILES)
 	GOOS=$(call getOs,$(1)) GOARCH=$(call getArch,$(1)) $(GO) build $(GO_BUILD_FLAGS) -o $$@
 
 all-sboms: $(OUTDIR)/$(BINNAME)-$(1).sbom.json
-$(OUTDIR)/$(BINNAME)-$(1).sbom.json: go.mod go.sum
+$(OUTDIR)/$(BINNAME)-$(1).sbom.json: $(OUTDIR)/ go.mod go.sum
 	GOOS=$(call getOs,$(1)) GOARCH=$(call getArch,$(1)) $(CYCLONEDX) app -main . $(SBOM_FLAGS) -output $$@
 
 .PHONY: clean-$(1)
