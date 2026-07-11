@@ -138,6 +138,7 @@ $(OUTDIR)/LICENSE: LICENSE $(OUTDIR)/
 # Without this, the build would include many cut-and-paste targets.
 #
 # Note: the SBOM generation will fail if run with the vendor directory intact.
+# This includes a hack to work around that.
 getOs = $(firstword $(subst -, ,$(1)))
 getArch = $(word 2,$(subst -, ,$(1)))
 getExt = $(subst windows,.exe,$(findstring windows,$(1)))
@@ -152,18 +153,15 @@ $(OUTDIR)/$(BINNAME)-$(1)$(call getExt,$(1)): $(OUTDIR)/ $(SOURCE_FILES)
 
 all-sboms: $(OUTDIR)/$(BINNAME)-$(1).sbom.json
 $(OUTDIR)/$(BINNAME)-$(1).sbom.json: $(OUTDIR)/ go.mod go.sum
+	test -f $$@ && mv $$@ $$@.orig || true
 	-GOOS=$(call getOs,$(1)) GOARCH=$(call getArch,$(1)) $(CYCLONEDX) app -main . $(SBOM_FLAGS) -output $$@
-	test -f $$@
+	test -f $$@ || mv $$@.orig $$@
 
 .PHONY: clean-$(1)
 clean: clean-$(1)
 clean-$(1):
 	-$(RM) $(OUTDIR)/$(BINNAME)-$(1)$(call getExt,$(1))
 	-$(RM) $(OUTDIR)/$(BINNAME)-$(1).sbom.json
-
-#distribution-bin: $(DISTDIR)/$(BINNAME)-$(1)$(call getExt,$(1))
-#$(DISTDIR)/$(BINNAME)-$(1)$(call getExt,$(1)): $(OUTDIR)/$(BINNAME)-$(1)$(call getExt,$(1)) $(DISTDIR)/
-#	$(CP) $$< $$@
 
 distribution-bin: $(DISTDIR)/$(BINNAME)-$(1).zip
 $(DISTDIR)/$(BINNAME)-$(1).zip: $(OUTDIR)/$(BINNAME)-$(1)$(call getExt,$(1)) $(OUTDIR)/$(BINNAME)-$(1).sbom.json $(OUTDIR)/LICENSE $(DISTDIR)/

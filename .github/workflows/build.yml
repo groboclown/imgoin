@@ -23,7 +23,7 @@ jobs:
           set +x
           sudo apt-get update
           DEBIAN_FRONTEND=noninteractive sudo apt-get install -y \
-              libbtrfs-dev \
+              libbtrfs-dev libassuan-dev libgpgme-dev \
               golang \
               make \
               ca-certificates \
