@@ -1,0 +1,5 @@
+
+# Used for testing out manifests.  However, the build currently only
+# supports using Podman to generate this file, and the tests don't
+# use it.
+oci-joined.tar
