@@ -35,4 +35,4 @@ jobs:
 
             - name: Build & Test
               run: |
-                make all
+                PATH=$HOME/go/bin:$PATH make all

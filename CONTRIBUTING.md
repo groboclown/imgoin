@@ -63,10 +63,14 @@ This will compile the executable into the file `imgoin`.
 
 To release the product, you need to follow these steps:
 
-1. In the `dev` branch, which should contain the pending changes:
+1. Ensure all dependencies are up-to-date, while keeping the project at the current Go toolchain version (1.26):
+   ```shell
+   go get -t -u go@1.26 .
+   ```
+2. In the `dev` branch, which should contain the pending changes:
   1. Bump the version number in the [`version.txt`](version.txt) based on semantic versioning.
   2. Update the [`CHANGELOG.md`](CHANGELOG.md) to include the commit IDs into main, along with a high level description of the release.
   3. Create a merge pull request (PR) from `dev` into `main`.  The builds must pass.  After all checks pass, merge the PR.
-2. Manually release.  *Note: in the future, we should aim to automate this.*
+3. Manually release.  *Note: in the future, we should aim to automate this.*
   1. Run `make distribution` to generate the distribution files in the `build/distribution` directory.
   2. Create the release in GitHub off the main branch, using the version number as the tag (in the form `v` + contents of `version.txt`).  The description should contain the `CHANGELOG.md` for this release.  The files should contain *all* the files in the `build/distribution` directory.
