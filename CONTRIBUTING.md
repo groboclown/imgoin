@@ -20,7 +20,7 @@ make go-dependencies
 Additionally, because this depends upon the container library, you'll need these installed when building on Linux:
 
 * btrfs headers
-* gpgme headers
+* gpgme headers (not 100% required, but the vulnerability check will fail without it)
 
 For Ubuntu, you can install it with:
 
