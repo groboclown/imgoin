@@ -4,7 +4,7 @@ on:
 
 jobs:
   ubuntu:
-    name: Ubuntu
+    name: Ubuntu Cgo
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.properties.outputs.version }}
@@ -101,5 +101,5 @@ jobs:
         run: |
           export GOROOT=$($HOME/go/bin/go1.26.8 env GOROOT)
           export PATH=$GOROOT/bin:$HOME/go/bin:$PATH
-          make CGO_ENABLE=0 all-sboms
-          make CGO_ENABLE=0 all
+          make CGO_ENABLED=0 all-sboms
+          make CGO_ENABLED=0 all

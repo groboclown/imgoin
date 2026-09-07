@@ -151,7 +151,7 @@ all-sboms: $(OUTDIR)/$(BINNAME)-$(1).sbom.json
 $(OUTDIR)/$(BINNAME)-$(1).sbom.json: $(OUTDIR)/ go.mod go.sum
 	test -f $$@ && mv $$@ $$@.orig || true
 	-GOOS=$(call getOs,$(1)) GOARCH=$(call getArch,$(1)) $(CYCLONEDX) app -main . $(SBOM_FLAGS) -output $$@
-	test -f $$@ || mv $$@.orig $$@
+	test -f $$@ || mv $$@.orig $$@ || true
 
 .PHONY: clean-$(1)
 clean: clean-$(1)
