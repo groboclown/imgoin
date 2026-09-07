@@ -12,6 +12,7 @@ ZIPF = zip -9jD
 GO_BUILD_FLAGS = -tags 'containers_image_openpgp'
 SBOM_FLAGS = -licenses=true -json=true -std=true
 
+CGO_ENABLED = 1
 SUPPORTED_PLATFORMS = linux-arm64 linux-amd64 darwin-arm64 darwin-amd64 windows-amd64
 
 OUTDIR := build
@@ -55,19 +56,19 @@ test: $(TEST_FILES) $(SOURCE_FILES)
 
 
 ## vulncheck          Check the code for use of vulnerable dependencies.
-##                    Does not stop the build on a discovered vulnerability.
-# This will fail if the gpgme libraries aren't installed.
+##                    Stops the build on a discovered vulnerability.
 .PHONY: vulncheck
 dev: vulncheck
 all: vulncheck
+# This will fail due to issues with gpgme on Linux if CGO_ENABLED=0
 vulncheck: $(SOURCE_FILES) $(TEST_FILES)
-	-$(GOVULNCHECK) ./...
+	CGO_ENABLED=1 $(GOVULNCHECK) ./...
 
-## vulncheck-required Check the code for use of vulnerable dependencies.
+## vulncheck-verbose  Check the code for use of vulnerable dependencies.
 ##                    Stops the build on a discovered vulnerability.
-.PHONY: vulncheck-required
-vulncheck-required: $(SOURCE_FILES) $(TEST_FILES)
-	$(GOVULNCHECK) ./...
+.PHONY: vulncheck-verbose
+vulncheck-verbose: $(SOURCE_FILES) $(TEST_FILES)
+	CGO_ENABLED=1 $(GOVULNCHECK) -show verbose ./...
 
 
 ## all-binaries       Generate all platform binaries.
@@ -88,27 +89,15 @@ distribution: distribution-bin
 distribution-bin:
 
 
-## go-dependencies    Install required go-based dependencies.
-.PHONY: go-dependencies
-go-dependencies:
-
-
 ## format             Reformat the code using Go rules.
 .PHONY: format
 format: $(SOURCE_FILES)
 	$(GO) fmt ./...
 
 
-## crypto-fix         Set up vendor directory for use with the OpenPGP work-around.
-.PHONY: crypto-fix
-crypto-fix: vendor/
-	@echo Applying the ProtonMail OpenPGP hack to avoid GO-2026-5932.
-	sed -i 's|"golang.org/x/crypto/openpgp"|"github.com/ProtonMail/go-crypto/openpgp"|g' vendor/go.podman.io/image/v5/signature/*.go
-	sed -i 's|md\.SignatureV3|md\.Signature|g' vendor/go.podman.io/image/v5/signature/*.go
-
-vendor/:
-	$(GO) mod vendor
-
+## go-dependencies    Install required go-based dependencies.
+.PHONY: go-dependencies
+go-dependencies:
 
 .PHONY: go-dep-vulncheck
 go-dependencies: go-dep-vulncheck
@@ -149,7 +138,7 @@ $(info Supporting $(call getOs,$(1))-$(call getArch,$(1)))
 
 all-binaries: $(OUTDIR)/$(BINNAME)-$(1)$(call getExt,$(1))
 $(OUTDIR)/$(BINNAME)-$(1)$(call getExt,$(1)): $(OUTDIR)/ $(SOURCE_FILES)
-	GOOS=$(call getOs,$(1)) GOARCH=$(call getArch,$(1)) $(GO) build $(GO_BUILD_FLAGS) -o $$@
+	GOOS=$(call getOs,$(1)) GOARCH=$(call getArch,$(1)) CGO_ENABLED=$(CGO_ENABLED) $(GO) build $(GO_BUILD_FLAGS) -o $$@
 
 all-sboms: $(OUTDIR)/$(BINNAME)-$(1).sbom.json
 $(OUTDIR)/$(BINNAME)-$(1).sbom.json: $(OUTDIR)/ go.mod go.sum

@@ -141,13 +141,12 @@ This program relies on the [container-libs](https://github.com/podman-container-
 
 ## Examples
 
-You can find a set of examples for using the tool in combination with other container tools in the [`examples`] directory.  It shows how this tool replaces or enhances other tools' functionality.
+You can find a set of examples for using the tool in combination with other container tools in the [`examples`](examples) directory.  It shows how this tool replaces or enhances other tools' functionality.
 
 ## Limitations
 
 This tool does not sign the generated (target) image.  Signing should happen through other tools, such as `skopeo`.
 
-For compatibility, this tool currently relies on the unsupported and insecure library `x/crypto/openpgp`.  A pending issue will swap out the signature checking with another library.
 
 ## A Refresher: Manifest Images
 
