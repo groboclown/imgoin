@@ -14,6 +14,8 @@ SBOM_FLAGS = -licenses=true -json=true -std=true
 
 CGO_ENABLED = 1
 SUPPORTED_PLATFORMS = linux-arm64 linux-amd64 darwin-arm64 darwin-amd64 windows-amd64
+CC_X86_64 = $(CC)
+CC_ARM64 = $(CC)
 
 OUTDIR := build
 DISTDIR := $(OUTDIR)/distribution
@@ -52,9 +54,9 @@ $(BINNAME)$(BINEXT): $(OUTDIR)/ $(SOURCE_FILES)
 dev: test
 all: test
 test: $(TEST_FILES) $(SOURCE_FILES)
-	$(GO) test $(GO_BUILD_FLAGS) ./...
+	 CGO_ENABLED=$(CGO_ENABLED) $(GO) test $(GO_BUILD_FLAGS) ./...
 
-
+ 
 ## vulncheck          Check the code for use of vulnerable dependencies.
 ##                    Stops the build on a discovered vulnerability.
 .PHONY: vulncheck
@@ -132,13 +134,18 @@ getOs = $(firstword $(subst -, ,$(1)))
 getArch = $(word 2,$(subst -, ,$(1)))
 getExt = $(subst windows,.exe,$(findstring windows,$(1)))
 
+__CC_arm64 = $(subst 1,CC=$(CC_ARM64),$(subst 0,,$(CGO_ENABLED)))
+__CC_amd64 = $(subst 1,CC=$(CC_X86_64),$(subst 0,,$(CGO_ENABLED)))
+genCC = $(__CC_$(word 2,$(subst -, ,$(1))))
+
+
 define OSBuild =
-$(info Supporting $(call getOs,$(1))-$(call getArch,$(1)))
+$(info Supporting $(call getOs,$(1))-$(call getArch,$(1)) with $(call genCC,$(1)))
 
 
 all-binaries: $(OUTDIR)/$(BINNAME)-$(1)$(call getExt,$(1))
 $(OUTDIR)/$(BINNAME)-$(1)$(call getExt,$(1)): $(OUTDIR)/ $(SOURCE_FILES)
-	GOOS=$(call getOs,$(1)) GOARCH=$(call getArch,$(1)) CGO_ENABLED=$(CGO_ENABLED) $(GO) build $(GO_BUILD_FLAGS) -o $$@
+	GOOS=$(call getOs,$(1)) GOARCH=$(call getArch,$(1)) $(call genCC,$(1)) CGO_ENABLED=$(CGO_ENABLED) $(GO) build $(GO_BUILD_FLAGS) -o $$@
 
 all-sboms: $(OUTDIR)/$(BINNAME)-$(1).sbom.json
 $(OUTDIR)/$(BINNAME)-$(1).sbom.json: $(OUTDIR)/ go.mod go.sum
