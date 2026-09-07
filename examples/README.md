@@ -28,6 +28,17 @@ This will install:
 
 Then it will add into the kernel the support to run `qemu` for ARM64 programs.
 
+### Amazon Linux 2023
+
+Amazon Linux 2023 does not ship with Podman, but it does have [Buildah](https://github.com/podman-container-tools/buildah), the build-side of the Podman tools.
+
+```sh
+dnf install buildah qemu-user-static qemu-user-binfmt
+systemctl start systemd-binfmt
+```
+
+With the `buildah` tool, you'll want to *build* the container using the same arguments as you would with `podman` or `docker`.  Instead of `buildah save -o FILENAME IMAGE_TAG`, you'd use `buildah push IMAGE_TAG oci-archive:FILENAME`
+
 ### Arch Linux x64
 
 ```sh

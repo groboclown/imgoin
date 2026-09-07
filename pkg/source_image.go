@@ -13,6 +13,7 @@ import (
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	cimage "go.podman.io/image/v5/image"
 	"go.podman.io/image/v5/manifest"
+	"go.podman.io/image/v5/pkg/blobinfocache/none"
 	"go.podman.io/image/v5/signature"
 	"go.podman.io/image/v5/types"
 )
@@ -115,7 +116,7 @@ func (r *SrcImage) GetManifests(ctx context.Context) ([]manifest.ListUpdate, err
 		item.ReadOnly.Annotations = maps.Clone(config.Annotations)
 	}
 	if config.Digest != "" {
-		configMan, err := parseConfig(ctx, r.img, config)
+		configMan, err := parseConfig(ctx, r.img, config, none.NoCache)
 		if err != nil {
 			return nil, err
 		}
@@ -136,7 +137,7 @@ func (r *SrcImage) GetManifests(ctx context.Context) ([]manifest.ListUpdate, err
 func (r *SrcImage) GetBlob(ctx context.Context, blob types.BlobInfo) (io.ReadCloser, error) {
 	if isManifestMediaType(blob.MediaType) {
 		// Manifest blobs can be hidden in many places.
-		if rc, _, err := r.img.GetBlob(ctx, blob, nil); err == nil {
+		if rc, _, err := r.img.GetBlob(ctx, blob, none.NoCache); err == nil {
 			data, readErr := io.ReadAll(rc)
 			rc.Close()
 			if readErr == nil {
@@ -268,9 +269,9 @@ func (r *SrcImage) Close() error {
 }
 
 // Turn the configuration blob into basic image data used for populating the target.
-func parseConfig(ctx context.Context, img types.ImageSource, config types.BlobInfo) (*SimpleConfig, error) {
+func parseConfig(ctx context.Context, img types.ImageSource, config types.BlobInfo, cache types.BlobInfoCache) (*SimpleConfig, error) {
 	// docker media type config info blob contains the json formatted file.
-	configReader, _, err := img.GetBlob(ctx, config, nil)
+	configReader, _, err := img.GetBlob(ctx, config, cache)
 	if err != nil {
 		return nil, err
 	}
