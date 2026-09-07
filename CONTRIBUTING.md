@@ -15,29 +15,50 @@ Once you have that, you will most likely need to install some additional Go tool
 make go-dependencies
 ```
 
-### Linux Requirements
+### Linux Vulnerability Check Requirements
 
-Additionally, because this depends upon the container library, you'll need these installed when building on Linux:
-
-* btrfs headers
-* gpgme headers (not 100% required, but the vulnerability check will fail without it)
-
-For Ubuntu, you can install it with:
+In order to have the vulnerability checks pass, you'll need to install the GPG ME developer libraries.
 
 ```shell
-apt-get install libbtrfs-dev libassuan-dev libgpgme-dev
+apt-get install libassuan-dev libgpgme-dev
 ```
 
 For Arch Linux, you can install it with:
 
 ```shell
-pacman -S btrfs-progs gpgme
+pacman -S gpgme
 ```
 
 For Fedora Linux, you can install it with:
 
 ```shell
-dnf install libbtrfs-devel gpgme-devel libassuan-devel
+dnf install gpgme-devel libassuan-devel
+```
+
+### Linux + BTRFS Requirements
+
+If you're running on Linux, the default build mode will use the BTRFS library to support that storage type (the code inherits this behavior from the podman 'storage' library).  If you don't want this, or have trouble installing it, then run with `make CGO_ENABLED=0`; this will just turn off CGo.
+
+If you do want BTRFS enabled, then you'll need to install additional native items to build on Linux:
+
+* btrfs headers
+
+For Ubuntu, you can install it with:
+
+```shell
+apt-get install libbtrfs-dev
+```
+
+For Arch Linux, you can install it with:
+
+```shell
+pacman -S btrfs-progs
+```
+
+For Fedora Linux, you can install it with:
+
+```shell
+dnf install libbtrfs-devel
 ```
 
 ### Run
