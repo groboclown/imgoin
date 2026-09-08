@@ -44,4 +44,4 @@ jobs:
         run: |
           export GOROOT=$($HOME/go/bin/go1.26.8 env GOROOT)
           export PATH=$GOROOT/bin:$HOME/go/bin:$PATH
-          make all
+          make all -j$(nproc)
