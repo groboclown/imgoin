@@ -4,33 +4,35 @@ on:
 
 jobs:
   ubuntu:
-    name: Ubuntu
+    name: Ubuntu Cross
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.properties.outputs.version }}
       changelog: ${{ steps.properties.outputs.changelog }}
     steps:
       - name: Fetch Sources
-        uses: actions/checkout@v3
-      
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
       - name: Install OS Dependencies
         # The base setup should already have many of these installed,
         # but this makes it explicit.
         # Even with this explicit golang version install, the dependencies
         # install into the standard go home directory, rather than the
         # version directory.
+        # This uses 'zig' to perform cross-compiling with CGO.
         run: |
           set +x
           sudo apt-get update
           DEBIAN_FRONTEND=noninteractive sudo apt-get install -y \
               libbtrfs-dev libassuan-dev libgpgme-dev \
+              zip \
               golang \
-              make \
-              ca-certificates \
-              openssl
-          go install golang.org/dl/go1.26.5@latest
-          $HOME/go/bin/go1.26.5 download
-          export GOROOT=$($HOME/go/bin/go1.26.5 env GOROOT)
+              make
+          go install golang.org/dl/go1.26.8@latest
+          $HOME/go/bin/go1.26.8 download
+          export GOROOT=$($HOME/go/bin/go1.26.8 env GOROOT)
           export PATH=$GOROOT/bin:$HOME/go/bin:$PATH
           make go-dependencies
           echo $GOROOT/bin
@@ -39,18 +41,7 @@ jobs:
           ls $HOME/go/bin
 
       - name: Build & Test
-        # This uses a hack to patch the images/signatures package.
-        # Without it, the go.podman.io/image/v5/signature package will pull
-        # in the golang.org/x/crypto/openpgp package, which suffers from
-        # GO-2026-5932.
-
-        # Also, for some reason I haven't figured out yet, the cyclonedx
-        # sbom generator doesn't work right if running with this vendored
-        # environment for cross platform.  That unfortunately mis-directs
-        # the vulnerabilities to include the bad openpgp package, though.
         run: |
-          export GOROOT=$($HOME/go/bin/go1.26.5 env GOROOT)
+          export GOROOT=$($HOME/go/bin/go1.26.8 env GOROOT)
           export PATH=$GOROOT/bin:$HOME/go/bin:$PATH
-          make all-sboms
-          make crypto-fix
-          make all
+          make all -j$(nproc)

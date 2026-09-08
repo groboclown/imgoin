@@ -1,0 +1,54 @@
+FROM public.ecr.aws/docker/library/alpine:3 AS build
+
+# Completely for example purposes.  In no way use for production.
+
+# Setup the configuration files.
+RUN set -x \
+ && mkdir -p /export \
+ && apk add --no-cache apache2-utils openssl \
+ && htpasswd -Bbn that thing > /export/registry.password \
+ && openssl req -x509 \
+    -newkey rsa:4096  -sha256 -days 365 -nodes -subj '/CN=localhost' -addext "subjectAltName = DNS:localhost" \
+    -keyout /export/key.pem -out /export/cert.pem \
+ && echo '#!/bin/sh -e' >> /export/entrypoint.sh \
+ && echo '/usr/sbin/nginx' >> /export/entrypoint.sh \
+ && echo '/bin/registry serve /etc/registry-config.yml' >> /export/entrypoint.sh \
+ && echo '/usr/sbin/nginx -s quit' >> /export/entrypoint.sh \
+ && echo 'worker_processes auto; events { worker_connections 1024; } http {' >> /export/nginx.conf \
+ && echo 'upstream registry { server localhost:5000; }' >> /export/nginx.conf \
+ && echo 'server {' >> /export/nginx.conf \
+ && echo 'server_name registry.localhost; listen 39443 ssl; ssl_certificate /etc/nginx/certs/cert.pem; ssl_certificate_key /etc/nginx/certs/key.pem;' >> /export/nginx.conf \
+ && echo 'location / {' >> /export/nginx.conf \
+ && echo 'client_max_body_size 1000m;' >> /export/nginx.conf \
+ && echo 'proxy_pass http://registry; proxy_set_header Host $http_host; proxy_set_header X-Real-IP $remote_addr; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto $scheme; proxy_read_timeout 900;' >> /export/nginx.conf \
+ && echo '}' >> /export/nginx.conf \
+ && echo '}' >> /export/nginx.conf \
+ && echo '}' >> /export/nginx.conf
+
+
+FROM public.ecr.aws/docker/library/registry:latest AS registry
+
+FROM public.ecr.aws/docker/library/alpine:3
+
+
+RUN set -x \
+ && apk add --no-cache nginx
+
+COPY --from=build /export/registry.password /registry.password
+COPY --from=build /export/key.pem /etc/nginx/certs/key.pem
+COPY --from=build /export/cert.pem /etc/nginx/certs/cert.pem
+COPY --from=build /export/nginx.conf /etc/nginx/nginx.conf
+COPY --chmod=00755 --from=build /export/entrypoint.sh /entrypoint.sh
+COPY --from=registry /bin/registry /bin/registry
+COPY --from=registry /etc/distribution/config.yml /etc/registry-config.yml
+
+EXPOSE 39443
+VOLUME /data
+
+ENV \
+    REGISTRY_AUTH=htpasswd \
+    REGISTRY_AUTH_HTPASSWD_REALM="Registry Realm" \
+    REGISTRY_AUTH_HTPASSWD_PATH=/registry.password \
+    REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=/data
+
+CMD ["/entrypoint.sh"]

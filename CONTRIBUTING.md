@@ -15,29 +15,26 @@ Once you have that, you will most likely need to install some additional Go tool
 make go-dependencies
 ```
 
-### Linux Requirements
+### Linux + BTRFS Requirements
 
-Additionally, because this depends upon the container library, you'll need these installed when building on Linux:
-
-* btrfs headers
-* gpgme headers (not 100% required, but the vulnerability check will fail without it)
+If you're running on Linux, the build will try to the BTRFS library to support that storage type (the code inherits this behavior from the podman 'storage' library) if you have the library installed.  To install it, you'll need to install the `btrfs` headers.
 
 For Ubuntu, you can install it with:
 
 ```shell
-apt-get install libbtrfs-dev libassuan-dev libgpgme-dev
+apt-get install libbtrfs-dev
 ```
 
 For Arch Linux, you can install it with:
 
 ```shell
-pacman -S btrfs-progs gpgme
+pacman -S btrfs-progs
 ```
 
 For Fedora Linux, you can install it with:
 
 ```shell
-dnf install libbtrfs-devel gpgme-devel libassuan-devel
+dnf install libbtrfs-devel
 ```
 
 ### Run
@@ -50,7 +47,13 @@ make
 
 to run the standard developer tools to format the code, test it, and create the executable.
 
-If you're looking just to compile the executable, you can run:
+For the full list of usable build targets, you can run:
+
+```shell
+make help
+```
+
+To just compile the executable, you can run:
 
 ```shell
 make build
@@ -72,5 +75,5 @@ To release the product, you need to follow these steps:
   2. Update the [`CHANGELOG.md`](CHANGELOG.md) to include the commit IDs into main, along with a high level description of the release.
   3. Create a merge pull request (PR) from `dev` into `main`.  The builds must pass.  After all checks pass, merge the PR.
 3. Manually release.  *Note: in the future, we should aim to automate this.*
-  1. Run `make distribution` to generate the distribution files in the `build/distribution` directory.
+  1. Run `make distribution` to generate the distribution files in the `build/distribution` directory.  This can take a while; you probably want to run `make distribution -j16`
   2. Create the release in GitHub off the main branch, using the version number as the tag (in the form `v` + contents of `version.txt`).  The description should contain the `CHANGELOG.md` for this release.  The files should contain *all* the files in the `build/distribution` directory.
