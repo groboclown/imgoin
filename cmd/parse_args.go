@@ -73,6 +73,7 @@ func ParseArgs(name, version string, args []string) (*ParsedArgs, int) {
 		default:
 			fmt.Fprintf(os.Stderr, "Unknown argument (%s)\n", arg)
 			showHelp = true
+			ret = 1
 			index += 1
 		}
 	}
