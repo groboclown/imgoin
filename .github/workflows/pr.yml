@@ -97,7 +97,7 @@ jobs:
           ../../imgoin --version
           echo "Constructing and starting registry."
           buildah build -t local-registry -f Dockerfile.registry .
-          podman run --rm --detatch --name registry -p 39443:39443 local-registry
+          podman run --rm --detach --name registry -p 39443:39443 local-registry
           echo "Ensuring registry works."
           buildah login --tls-verify=false --username that --password thing localhost:39443
           echo "Building test images."
