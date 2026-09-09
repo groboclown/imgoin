@@ -1,0 +1,64 @@
+name: Build and Validate
+on:
+  release:
+    types:
+      - published
+
+env:
+  GO_VERSION: 1.26.8
+
+
+permissions:
+  contents: write
+
+jobs:
+  ubuntu:
+    name: Ubuntu Cross
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ github.event.release.tag_name }}
+    steps:
+      - name: Fetch Sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install OS dependencies
+        # The base setup should already have many of these installed, but this makes it explicit.
+        run: |
+          set +x
+          sudo apt-get update
+          DEBIAN_FRONTEND=noninteractive sudo apt-get install -y \
+              libbtrfs-dev libassuan-dev libgpgme-dev \
+              zip \
+              golang \
+              make
+
+      - name: Install Go and its dependencies
+        # Install the right Go version + the build-specific dependencies.
+        run: |
+          go install golang.org/dl/go${GO_VERSION}@latest
+          $HOME/go/bin/go${GO_VERSION} download
+          export GOROOT=$($HOME/go/bin/go${GO_VERSION} env GOROOT)
+          export PATH=$GOROOT/bin:$HOME/go/bin:$PATH
+          make go-dependencies
+
+      - name: Test
+        run: |
+          export GOROOT=$($HOME/go/bin/go${GO_VERSION} env GOROOT)
+          export PATH=$GOROOT/bin:$HOME/go/bin:$PATH
+          make test vulncheck
+
+      - name: Assemble distributions
+        run: |
+          export GOROOT=$($HOME/go/bin/go${GO_VERSION} env GOROOT)
+          export PATH=$GOROOT/bin:$HOME/go/bin:$PATH
+          make distribution -j$(nproc)
+
+      - name: Release
+        run: |
+          test "$( cat version.txt )" = "${{ github.event.release.tag_name }}"
+          cd build/distribution
+          gh release upload ${{ github.event.release.tag_name }} *.zip
+        env:
+          GITHUB_TOKEN: ${{ github.TOKEN }}
