@@ -8,8 +8,9 @@ import (
 )
 
 func printHelp(name string) {
-	fmt.Printf(`Usage: %s [-h] --source SETTINGS [--source SETTINGS ...] --target SETTINGS
+	fmt.Printf(`Usage: %s [-h] [-V] --source SETTINGS [--source SETTINGS ...] --target SETTINGS
 Where:
+   -V, --version    Print the tool name + version and quit.
    -h, --help       This screen.
    --source         Settings for the source image.  You may specify
                     multiple source images.
