@@ -92,18 +92,25 @@ jobs:
         # referencing the just created ones.
         # Then, for validation, the buildah tool pulls that image back down.
         run: |
-          ./imgoin --version
-
           cd examples/remote-push
+          echo "Testing imgoin built."
+          ../../imgoin --version
+          echo "Constructing and starting registry."
           buildah build -t local-registry Dockerfile.registry .
           podman run --rm --detatch --name registry -p 39443:39443 local-registry
+          echo "Ensuring registry works."
           buildah login --tls-verify=false --username that --password thing localhost:39443
+          echo "Building test images."
           buildah build -t hello-world:amd64 --platform linux/amd64 .
           buildah build -t hello-world:arm64 --platform linux/arm64 .
+          echo "Pushing amd64 & arm64 into registry."
           buildah push --tls-verify=false hello-world:amd64 docker://localhost:39443/hello-world:amd64
           buildah push --tls-verify=false hello-world:arm64 docker://localhost:39443/hello-world:arm64
+          echo "Testing imgoin push into the registry."
           ../../imgoin \
             --source skip-tls-verify=yes image=docker://localhost:39443/hello-world:amd64 \
             --source skip-tls-verify=yes image=docker://localhost:39443/hello-world:arm64 \
             --target skip-tls-verify=yes image=docker://localhost:39443/hello-world:latest
+          echo "Validating that the push worked."
           buildah pull --tls-verify=false docker://localhost:39443/hello-world:latest
+          podman kill registry
