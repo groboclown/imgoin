@@ -1,11 +1,8 @@
 FROM public.ecr.aws/docker/library/alpine:3
 
-# Setup the image
-RUN set -x \
-    && echo '#!/bin/sh' > /entrypoint \
-    && echo 'echo "Hello, world."' >> /entrypoint \
-    && echo 'uname -a' >> /entrypoint \
-    && chmod +x /entrypoint
+# This does not perform 'RUN', as that requires a local qemu environment.
+# Instead, this just sets the user + sets a command.  In this way, any
+# build tool should construct a valid cross-platform image for any platform.
 
 USER daemon
-CMD [ "/entrypoint" ]
+CMD [ "/bin/uname", "-a" ]
