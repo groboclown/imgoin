@@ -40,6 +40,8 @@ func ParseArgs(name, version string, args []string) (*ParsedArgs, int) {
 			showHelp = true
 			ret = -1
 			index += 1
+		case "-v":
+			fallthrough
 		case "-V":
 			fallthrough
 		case "--version":
