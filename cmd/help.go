@@ -11,6 +11,7 @@ func printHelp(name string) {
 	fmt.Printf(`Usage: %s [-h] --source SETTINGS [--source SETTINGS ...] --target SETTINGS
 Where:
    -h, --help       This screen.
+   -v, --version    Print the tool name and version from version.txt.
    --source         Settings for the source image.  You may specify
                     multiple source images.
    --target			Settings for the target image.

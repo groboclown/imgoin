@@ -41,3 +41,19 @@ func TestTransportRequireRootless(t *testing.T) {
 		})
 	}
 }
+
+func TestParseArgsVersionFlags(t *testing.T) {
+	t.Parallel()
+	for _, flag := range []string{"-v", "-V", "--version"} {
+		t.Run(flag, func(t *testing.T) {
+			t.Parallel()
+			parsed, code := cmd.ParseArgs("imgoin", "1.2.3-test", []string{flag})
+			if parsed != nil {
+				t.Fatalf("ParseArgs(%q) returned parsed args, want nil", flag)
+			}
+			if code != 0 {
+				t.Fatalf("ParseArgs(%q) exit = %d, want 0", flag, code)
+			}
+		})
+	}
+}
